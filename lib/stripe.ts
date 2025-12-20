@@ -1,5 +1,5 @@
 import Stripe from "stripe";
-import { loadStripe } from "@stripe/stripe-js";
+import { loadStripe, Stripe as StripeJS } from "@stripe/stripe-js";
 
 // Server-side Stripe instance
 // Si la clé n'est pas configurée, on retourne null (pour le développement sans Stripe)
@@ -11,7 +11,7 @@ export const stripe = process.env.STRIPE_SECRET_KEY
   : null;
 
 // Client-side Stripe instance
-let stripePromise: Promise<Stripe | null>;
+let stripePromise: Promise<StripeJS | null>;
 export const getStripe = () => {
   if (!stripePromise) {
     stripePromise = loadStripe(
