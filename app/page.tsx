@@ -2,8 +2,9 @@
 
 import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { motion } from "framer-motion";
-import { Shield, Sparkles, Car, Hammer, Stethoscope, Smartphone, TrendingDown, Eye, Play } from "lucide-react";
+import { Shield, Sparkles, Car, Hammer, Stethoscope, Smartphone, TrendingDown, Eye, Play, Lock, HelpCircle, CheckCircle2, Trash2, RotateCcw } from "lucide-react";
 import { CategoryBadge } from "@/components/CategoryBadge";
 import { UploadZone } from "@/components/UploadZone";
 import { AnalysisProgress } from "@/components/AnalysisProgress";
@@ -14,8 +15,9 @@ import { StatsSection } from "@/components/StatsSection";
 import { HeroButton } from "@/components/HeroButton";
 import { VideoSection } from "@/components/VideoSection";
 import { VideoModal } from "@/components/VideoModal";
-import { analyzeQuote } from "@/actions/analyze";
-import { createAnalysis } from "@/actions/save-analysis";
+import { FAQ } from "@/components/FAQ";
+import { Testimonials } from "@/components/Testimonials";
+import { createPendingAnalysis } from "@/actions/create-pending-analysis";
 import { toast } from "sonner";
 
 const categories = [
@@ -57,42 +59,50 @@ export default function Home() {
   const [showVideoModal, setShowVideoModal] = useState(false);
 
   const scrollToUpload = () => {
-    console.log("🖱️ Bouton cliqué ! Scroll vers l'upload...");
-    
     if (uploadRef.current) {
-      console.log("✅ Référence trouvée, scroll en cours...");
-      
       const element = uploadRef.current;
-      const targetPosition = element.getBoundingClientRect().top + window.pageYOffset - 100;
-      const startPosition = window.pageYOffset;
-      const distance = targetPosition - startPosition;
-      const duration = 1500; // 1.5 secondes pour un scroll très doux
-      let start: number | null = null;
       
-      // Fonction d'easing pour un mouvement fluide (ease-in-out)
-      const easeInOutCubic = (t: number): number => {
-        return t < 0.5 
-          ? 4 * t * t * t 
-          : (t - 1) * (2 * t - 2) * (2 * t - 2) + 1;
-      };
+      // Détection mobile pour optimiser le scroll
+      const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent) || window.innerWidth < 768;
       
-      // Animation personnalisée du scroll
-      const animation = (currentTime: number) => {
-        if (start === null) start = currentTime;
-        const timeElapsed = currentTime - start;
-        const progress = Math.min(timeElapsed / duration, 1);
-        const ease = easeInOutCubic(progress);
+      if (isMobile) {
+        // Sur mobile : utiliser scrollIntoView natif (plus fluide et performant)
+        element.scrollIntoView({ 
+          behavior: "smooth", 
+          block: "center",
+          inline: "nearest"
+        });
+      } else {
+        // Sur desktop : animation personnalisée plus douce
+        const targetPosition = element.getBoundingClientRect().top + window.pageYOffset - 100;
+        const startPosition = window.pageYOffset;
+        const distance = targetPosition - startPosition;
+        const duration = 800; // Plus rapide pour être plus fluide
+        let start: number | null = null;
         
-        window.scrollTo(0, startPosition + distance * ease);
+        // Easing optimisé pour fluidité (ease-out quad)
+        const easeOutQuad = (t: number): number => {
+          return t * (2 - t);
+        };
         
-        if (timeElapsed < duration) {
-          requestAnimationFrame(animation);
-        }
-      };
-      
-      requestAnimationFrame(animation);
-    } else {
-      console.error("❌ Référence uploadRef non trouvée !");
+        const animation = (currentTime: number) => {
+          if (start === null) start = currentTime;
+          const timeElapsed = currentTime - start;
+          const progress = Math.min(timeElapsed / duration, 1);
+          const ease = easeOutQuad(progress);
+          
+          window.scrollTo({
+            top: startPosition + distance * ease,
+            behavior: "auto" // Utiliser auto pour contrôle manuel
+          });
+          
+          if (timeElapsed < duration) {
+            requestAnimationFrame(animation);
+          }
+        };
+        
+        requestAnimationFrame(animation);
+      }
     }
   };
 
@@ -143,46 +153,30 @@ export default function Home() {
         const base64 = reader.result as string;
         
         // Show progress screen
-        toast.success('Fichier chargé !', { id: 'upload' });
+        toast.loading('Préparation de votre devis...', { id: 'upload' });
         setShowProgress(true);
 
-        // Wait 3 seconds for progress animation
+        // Wait 2 seconds for progress animation (simulation)
         setTimeout(async () => {
-          toast.loading('Envoi à l\'IA...', { id: 'analysis' });
+          // Save image to KV store WITHOUT analysis (saves OpenAI credits!)
+          const saveResult = await createPendingAnalysis(base64, selectedCategory || undefined);
           
-          // Call server action with selected category
-          const result = await analyzeQuote(base64, selectedCategory);
-
-          if (result.success && result.data) {
-            toast.success('Analyse terminée !', { id: 'analysis' });
+          if (saveResult.success && saveResult.id) {
+            toast.success('Devis prêt !', { id: 'upload' });
+            setShowProgress(false);
+            setIsAnalyzing(false);
             
-            // Save analysis to KV store and get unique ID
-            const saveResult = await createAnalysis(result.data, selectedCategory || undefined);
-            
-            if (saveResult.success && saveResult.id) {
-              // Redirect to rapport page
-              router.push(`/rapport/${saveResult.id}`);
-            } else {
-              setShowProgress(false);
-              setIsAnalyzing(false);
-              toast.error('Erreur de sauvegarde', { 
-                id: 'analysis',
-                description: saveResult.error || "Impossible de sauvegarder l'analyse"
-              });
-            }
+            // Redirect to rapport page (will show paywall)
+            router.push(`/rapport/${saveResult.id}`);
           } else {
             setShowProgress(false);
             setIsAnalyzing(false);
-            toast.error('Erreur d\'analyse', { 
-              id: 'analysis',
-              description: result.error || "Une erreur est survenue",
-              action: {
-                label: 'Réessayer',
-                onClick: () => handleFileSelect(file)
-              }
+            toast.error('Erreur', { 
+              id: 'upload',
+              description: saveResult.error || "Impossible de sauvegarder le devis"
             });
           }
-        }, 3000);
+        }, 2000);
       };
 
       reader.onerror = () => {
@@ -225,6 +219,15 @@ export default function Home() {
                 </h1>
               </div>
             </div>
+            <motion.a
+              href="#faq"
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl text-gray-600 hover:text-emerald-600 font-medium text-sm transition-colors"
+            >
+              <HelpCircle className="w-4 h-4" strokeWidth={2.5} />
+              <span>Comment ça marche</span>
+            </motion.a>
           </div>
         </header>
 
@@ -250,14 +253,64 @@ export default function Home() {
                 </span>
               </h1>
 
+              {/* Stat unique et crédible */}
+              <motion.p
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.1 }}
+                className="text-lg md:text-xl text-gray-700 mb-8 max-w-2xl mx-auto font-medium"
+              >
+                En moyenne, nos utilisateurs économisent{" "}
+                <span className="font-bold text-emerald-600">147€ par devis</span>
+              </motion.p>
+
+              {/* Bloc de réassurance avant le prix */}
+              <motion.div
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: 0.2 }}
+                className="mb-8 max-w-2xl mx-auto"
+              >
+                <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl p-6 border-2 border-emerald-200 shadow-sm">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <Lock className="w-4 h-4 text-white" strokeWidth={2.5} />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-900 mb-1">100% Confidentiel</p>
+                        <p className="text-gray-600 text-xs">Aucune donnée transmise au prestataire</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <Trash2 className="w-4 h-4 text-white" strokeWidth={2.5} />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-900 mb-1">Suppression auto</p>
+                        <p className="text-gray-600 text-xs">Devis supprimé après analyse</p>
+                      </div>
+                    </div>
+                    <div className="flex items-start gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <RotateCcw className="w-4 h-4 text-white" strokeWidth={2.5} />
+                      </div>
+                      <div>
+                        <p className="font-semibold text-gray-900 mb-1">Remboursé</p>
+                        <p className="text-gray-600 text-xs">Si le prix est déjà juste</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </motion.div>
+
+              {/* Prix */}
               <p className="text-xl md:text-2xl text-gray-600 mb-12 max-w-3xl mx-auto font-light">
                 Analyse IA instantanée pour <span className="font-semibold text-emerald-600">7,99€</span>
-                <br />
-                <span className="text-lg text-gray-500">Remboursé si votre devis est déjà au prix juste</span>
               </p>
 
               {/* Hero CTA Buttons */}
-              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-6">
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-4 mb-4">
                 <HeroButton onClick={scrollToUpload} />
                 
                 {/* VERSION 2 : Bouton Modal - Décommenter pour activer */}
@@ -276,28 +329,23 @@ export default function Home() {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => router.push("/demo")}
-                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white border-2 border-gray-300 text-gray-700 font-semibold hover:border-emerald-500 hover:text-emerald-700 transition-all shadow-sm"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white border-2 border-gray-300 text-gray-700 font-semibold hover:border-emerald-500 hover:text-emerald-700 transition-all shadow-sm mb-4"
               >
                 <Eye className="w-5 h-5" strokeWidth={2.5} />
                 <span>Voir un exemple</span>
               </motion.button>
 
-              {/* Économies détectées - discret sous le bouton */}
+              {/* Réassurance Confidentialité */}
               <motion.p
                 initial={{ opacity: 0, y: 10 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.3 }}
-                className="text-sm md:text-base text-gray-500 font-medium mb-16 flex items-center justify-center gap-2"
+                className="text-xs md:text-sm text-gray-500 flex items-center justify-center gap-2 mb-16"
               >
-                <TrendingDown className="w-5 h-5 text-emerald-600" strokeWidth={2.5} />
-                <span className="text-emerald-600">185 000€ d'économies</span> détectées ce mois-ci
+                <Lock className="w-4 h-4" strokeWidth={2} />
+                <span>Vos données personnelles sont automatiquement anonymisées par notre IA.</span>
               </motion.p>
             </motion.div>
-
-            {/* Stats Section - Preuve Sociale */}
-            <div className="mb-16">
-              <StatsSection />
-            </div>
 
             {/* VERSION 1 : Vidéo Démo Intégrée */}
             <VideoSection 
@@ -332,6 +380,11 @@ export default function Home() {
                 ))}
               </div>
             </motion.div>
+
+            {/* Stats Section - Preuve Sociale (déplacée plus bas) */}
+            <div className="mb-16">
+              <StatsSection />
+            </div>
 
             {/* Upload Zone */}
             <motion.div
@@ -397,19 +450,54 @@ export default function Home() {
         {/* How It Works */}
         <HowItWorks />
 
+        {/* Témoignages */}
+        <Testimonials />
+
+        {/* FAQ */}
+        <div id="faq">
+          <FAQ />
+        </div>
+
         {/* Footer */}
         <footer className="py-12 px-6 border-t border-gray-100 bg-gray-50">
           <div className="max-w-7xl mx-auto">
-            <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center">
-                  <Shield className="w-5 h-5 text-white" strokeWidth={2.5} />
-                </div>
-                <span className="font-bold text-gray-900">VigiDevis</span>
+            <div className="flex flex-col gap-6">
+              {/* Legal Links */}
+              <div className="flex flex-wrap items-center justify-center gap-4 md:gap-6 text-sm">
+                <Link 
+                  href="/cgv" 
+                  className="text-gray-600 hover:text-emerald-600 transition-colors font-medium"
+                >
+                  CGV
+                </Link>
+                <span className="text-gray-300">•</span>
+                <Link 
+                  href="/politique-confidentialite" 
+                  className="text-gray-600 hover:text-emerald-600 transition-colors font-medium"
+                >
+                  Politique de Confidentialité
+                </Link>
+                <span className="text-gray-300">•</span>
+                <Link 
+                  href="/mentions-legales" 
+                  className="text-gray-600 hover:text-emerald-600 transition-colors font-medium"
+                >
+                  Mentions Légales
+                </Link>
               </div>
-              <p className="text-sm text-gray-500">
-                © 2024 VigiDevis. Propulsé par l'Intelligence Artificielle.
-              </p>
+              
+              {/* Brand & Copyright */}
+              <div className="flex flex-col md:flex-row justify-between items-center gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center">
+                    <Shield className="w-5 h-5 text-white" strokeWidth={2.5} />
+                  </div>
+                  <span className="font-bold text-gray-900">VigiDevis</span>
+                </div>
+                <p className="text-sm text-gray-500">
+                  © 2024 VigiDevis. Votre partenaire de confiance pour des devis justes.
+                </p>
+              </div>
             </div>
           </div>
         </footer>

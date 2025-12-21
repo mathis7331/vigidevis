@@ -10,6 +10,21 @@
 
 html {
   scroll-behavior: smooth;
+  /* Optimisations pour scroll fluide sur mobile */
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: contain;
+}
+
+/* Amélioration du scroll smooth sur mobile */
+@media (max-width: 768px) {
+  html {
+    scroll-padding-top: 100px; /* Offset pour éviter le header */
+  }
+  
+  /* Optimisation performance scroll mobile */
+  * {
+    -webkit-tap-highlight-color: transparent;
+  }
 }
 
 body {

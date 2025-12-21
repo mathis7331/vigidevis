@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Lock, Check, Shield, Zap, TrendingDown, Lightbulb, CreditCard } from "lucide-react";
+import { Lock, Check, Shield, Zap, TrendingDown, Lightbulb, CreditCard, Trash2, RotateCcw } from "lucide-react";
 import { createCheckoutSession } from "@/actions/create-checkout";
 import { ANALYSIS_PRICE_DISPLAY } from "@/lib/stripe";
 import { toast } from "sonner";
@@ -166,6 +166,39 @@ export function Paywall({ analysisId, previewScore, previewSavings }: PaywallPro
                 <p className="text-sm text-emerald-100 mt-2">
                   Sans abonnement • Rapport accessible 30 jours
                 </p>
+              </div>
+            </div>
+
+            {/* Bloc de réassurance avant paiement */}
+            <div className="mb-8 p-5 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0">
+                    <Lock className="w-4 h-4 text-white" strokeWidth={2.5} />
+                  </div>
+                  <div>
+                    <p className="font-bold text-white">100% Confidentiel</p>
+                    <p className="text-xs text-emerald-100">Aucune donnée transmise</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0">
+                    <Trash2 className="w-4 h-4 text-white" strokeWidth={2.5} />
+                  </div>
+                  <div>
+                    <p className="font-bold text-white">Suppression auto</p>
+                    <p className="text-xs text-emerald-100">Devis supprimé après analyse</p>
+                  </div>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="w-7 h-7 rounded-lg bg-white/20 flex items-center justify-center flex-shrink-0">
+                    <RotateCcw className="w-4 h-4 text-white" strokeWidth={2.5} />
+                  </div>
+                  <div>
+                    <p className="font-bold text-white">Remboursé</p>
+                    <p className="text-xs text-emerald-100">Si le prix est déjà juste</p>
+                  </div>
+                </div>
               </div>
             </div>
 

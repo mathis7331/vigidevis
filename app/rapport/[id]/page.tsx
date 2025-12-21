@@ -57,40 +57,62 @@ export default function RapportPage() {
           // On attend que le webhook Stripe ait marqué l'analyse comme payée
           toast.loading("Vérification du paiement...", { id: "payment-check" });
           
-          // Attendre un peu pour que le webhook Stripe ait le temps de s'exécuter
-          await new Promise(resolve => setTimeout(resolve, 2000));
+          // L'analyse OpenAI peut prendre 5-10 secondes, on fait plusieurs tentatives
+          let attempts = 0;
+          const maxAttempts = 10; // 10 tentatives sur 30 secondes
           
-          // Recharger l'analyse depuis le serveur pour obtenir le statut isPaid mis à jour
-          const updatedResponse = await fetch(`/api/analysis/${id}`);
-          const updatedData = await updatedResponse.json();
-          
-          if (updatedData.success) {
-            setAnalysis(updatedData.analysis);
+          const checkPayment = async (): Promise<boolean> => {
+            attempts++;
+            const response = await fetch(`/api/analysis/${id}`);
+            const data = await response.json();
             
-            if (updatedData.analysis.isPaid) {
-              toast.success("Paiement confirmé !", { 
-                id: "payment-check",
-                description: "Votre analyse complète est maintenant disponible" 
-              });
-              setShowPaywall(false);
-            } else {
-              // Le webhook n'a pas encore été traité, réessayer
-              setTimeout(async () => {
-                const retryResponse = await fetch(`/api/analysis/${id}`);
-                const retryData = await retryResponse.json();
-                if (retryData.success && retryData.analysis.isPaid) {
-                  setAnalysis(retryData.analysis);
-                  toast.success("Paiement confirmé !", { id: "payment-check" });
-                  setShowPaywall(false);
-                } else {
-                  toast.error("Le paiement n'a pas encore été confirmé", { 
+            if (data.success && data.analysis) {
+              setAnalysis(data.analysis);
+              
+              if (data.analysis.isPaid) {
+                // Si l'analyse est en cours (payé mais pas encore de résultat)
+                if (data.analysis.isPaid && !data.analysis.result) {
+                  toast.loading("Analyse en cours...", { 
                     id: "payment-check",
-                    description: "Veuillez patienter ou recharger la page"
+                    description: "Votre devis est en train d'être analysé par l'IA" 
                   });
+                  return false; // Continuer à vérifier
                 }
-              }, 3000);
+                
+                // Analyse complète !
+                toast.success("Paiement confirmé !", { 
+                  id: "payment-check",
+                  description: "Votre analyse complète est maintenant disponible" 
+                });
+                setShowPaywall(false);
+                return true; // Succès
+              }
             }
-          }
+            
+            // Si on n'a pas encore atteint le max, réessayer
+            if (attempts < maxAttempts) {
+              return false; // Continuer
+            }
+            
+            // Timeout après 10 tentatives
+            toast.error("Le paiement est en cours de traitement", { 
+              id: "payment-check",
+              description: "Veuillez recharger la page dans quelques instants"
+            });
+            return true; // Arrêter les tentatives
+          };
+          
+          // Première vérification après 3 secondes
+          setTimeout(async () => {
+            let done = false;
+            while (!done && attempts < maxAttempts) {
+              done = await checkPayment();
+              if (!done) {
+                // Attendre 3 secondes entre chaque tentative
+                await new Promise(resolve => setTimeout(resolve, 3000));
+              }
+            }
+          }, 3000);
         } else if (payment === "cancelled") {
           toast.info("Paiement annulé", {
             description: "Vous pouvez débloquer l'analyse à tout moment"
@@ -115,7 +137,7 @@ export default function RapportPage() {
   }, [id, router, searchParams]);
 
   const calculateTotalSavings = () => {
-    if (!analysis) return 0;
+    if (!analysis || !analysis.result) return 0;
     return analysis.result.line_items.reduce((total, item) => {
       const quotedNum = parseFloat(item.quoted_price.replace(/[^\d.,]/g, "").replace(",", "."));
       const marketNum = parseFloat(item.market_price.replace(/[^\d.,]/g, "").replace(",", "."));
@@ -179,15 +201,45 @@ export default function RapportPage() {
     return null;
   }
 
+  // Si payé mais analyse pas encore terminée (webhook en cours)
+  if (analysis.isPaid && !analysis.result) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto mb-4" />
+          <p className="text-gray-600">Analyse en cours...</p>
+          <p className="text-sm text-gray-500 mt-2">Votre devis est en train d'être analysé par l'IA</p>
+        </div>
+      </div>
+    );
+  }
+
   // Show paywall if not paid
   if (showPaywall && !analysis.isPaid) {
-    const totalSavings = calculateTotalSavings();
+    // Si l'analyse n'est pas encore faite, utiliser des valeurs mock pour l'aperçu
+    const previewScore = analysis.result?.trust_score ?? 75; // Score estimé par défaut
+    const totalSavings = analysis.result 
+      ? calculateTotalSavings() 
+      : 250; // Économies estimées par défaut
+    
     return (
       <Paywall 
         analysisId={id}
-        previewScore={analysis.result.trust_score}
+        previewScore={previewScore}
         previewSavings={Math.round(totalSavings)}
       />
+    );
+  }
+
+  // À ce stade, l'analyse doit être payée ET avoir un résultat
+  if (!analysis.result) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto mb-4" />
+          <p className="text-gray-600">Analyse en cours...</p>
+        </div>
+      </div>
     );
   }
 

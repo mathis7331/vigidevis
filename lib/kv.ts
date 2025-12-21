@@ -10,11 +10,28 @@ import { AnalysisResult } from "./types";
 
 export interface StoredAnalysis {
   id: string;
-  result: AnalysisResult;
+  result?: AnalysisResult; // Optionnel : null si analyse pas encore faite
+  imageBase64?: string; // Image en base64 pour analyse future
   isPaid: boolean;
   createdAt: string;
   category?: string;
   imageUrl?: string;
+}
+
+export async function savePendingAnalysis(
+  id: string,
+  imageBase64: string,
+  category?: string
+): Promise<void> {
+  const analysis: StoredAnalysis = {
+    id,
+    imageBase64,
+    result: undefined, // Pas encore analysé
+    isPaid: false,
+    createdAt: new Date().toISOString(),
+    category,
+  };
+  await kv.set(`analysis:${id}`, analysis, { ex: 60 * 60 * 24 * 30 });
 }
 
 export async function saveAnalysis(

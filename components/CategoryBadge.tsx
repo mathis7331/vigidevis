@@ -20,8 +20,8 @@ export function CategoryBadge({ icon: Icon, label, color, bgColor, onClick, isAc
       whileTap={{ scale: 0.95 }}
       onClick={onClick}
       className={cn(
-        "relative overflow-hidden rounded-3xl transition-all p-8",
-        "aspect-square flex flex-col items-center justify-center gap-4",
+        "relative overflow-hidden rounded-2xl md:rounded-3xl transition-all",
+        "p-4 md:p-8 aspect-square flex flex-col items-center justify-center gap-2 md:gap-4",
         "border-2 shadow-md hover:shadow-2xl",
         isActive
           ? `border-${color}-500 ${bgColor} ring-4 ring-${color}-200`
@@ -33,13 +33,13 @@ export function CategoryBadge({ icon: Icon, label, color, bgColor, onClick, isAc
         animate={isActive ? { scale: [1, 1.1, 1], rotate: [0, 5, -5, 0] } : {}}
         transition={{ duration: 0.5 }}
         className={cn(
-          "w-20 h-20 rounded-2xl flex items-center justify-center",
+          "w-12 h-12 md:w-20 md:h-20 rounded-xl md:rounded-2xl flex items-center justify-center",
           isActive ? `bg-${color}-500` : `bg-${color}-100`
         )}
       >
         <Icon 
           className={cn(
-            "w-10 h-10",
+            "w-6 h-6 md:w-10 md:h-10",
             isActive ? "text-white" : `text-${color}-600`
           )} 
           strokeWidth={2.5} 
@@ -48,7 +48,7 @@ export function CategoryBadge({ icon: Icon, label, color, bgColor, onClick, isAc
 
       {/* Label */}
       <div className="text-center">
-        <h3 className="font-bold text-lg text-gray-900">
+        <h3 className="font-bold text-sm md:text-lg text-gray-900">
           {label}
         </h3>
         {isActive && (

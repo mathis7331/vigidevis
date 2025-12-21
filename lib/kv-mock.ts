@@ -7,7 +7,8 @@ import { AnalysisResult } from "./types";
 
 export interface StoredAnalysis {
   id: string;
-  result: AnalysisResult;
+  result?: AnalysisResult; // Optionnel : null si analyse pas encore faite
+  imageBase64?: string; // Image en base64 pour analyse future
   isPaid: boolean;
   createdAt: string;
   category?: string;
@@ -84,6 +85,24 @@ const DEMO_ANALYSIS: StoredAnalysis = {
 
 // Initialize demo analysis
 storage.set("DEMO12345", DEMO_ANALYSIS);
+
+export async function savePendingAnalysis(
+  id: string,
+  imageBase64: string,
+  category?: string
+): Promise<void> {
+  const analysis: StoredAnalysis = {
+    id,
+    imageBase64,
+    result: undefined, // Pas encore analysé
+    isPaid: false,
+    createdAt: new Date().toISOString(),
+    category,
+  };
+
+  storage.set(id, analysis);
+  console.log(`[MOCK KV] Saved pending analysis ${id} (image only, no OpenAI call)`);
+}
 
 export async function saveAnalysis(
   id: string,
