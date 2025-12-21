@@ -67,7 +67,7 @@ async function saveAnalysisVercel(
 
 async function getAnalysisVercel(id: string): Promise<StoredAnalysis | null> {
   const { kv } = await import("@vercel/kv");
-  const analysis = await kv.get(`analysis:${id}`);
+  const analysis = await kv.get<StoredAnalysis>(`analysis:${id}`);
   console.log(`[VERCEL KV] Retrieved analysis ${id}:`, analysis ? "found" : "not found");
   return analysis;
 }
