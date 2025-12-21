@@ -205,8 +205,8 @@ L'interface et le paywall fonctionnent sans Stripe configuré.
 ## 📊 Statistiques
 
 Le Mock KV affiche des stats fictives par défaut :
-- **1,250+ devis** analysés
-- **185,000€** d'économies détectées
+- **200+ devis** analysés
+- **26 700€** d'économies détectées
 - **4.9/5** note moyenne
 
 En production, ces stats sont incrémentées automatiquement.

@@ -6,14 +6,14 @@ import { TrendingUp, DollarSign, Star } from "lucide-react";
 const stats = [
   {
     icon: TrendingUp,
-    number: "1,250+",
+    number: "200+",
     label: "Devis analysés ce mois-ci",
     color: "text-blue-600",
     bgColor: "bg-blue-50",
   },
   {
     icon: DollarSign,
-    number: "185,000 €",
+    number: "26 700 €",
     label: "Économies totales détectées",
     color: "text-emerald-600",
     bgColor: "bg-emerald-50",

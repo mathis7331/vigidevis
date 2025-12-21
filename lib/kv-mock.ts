@@ -24,8 +24,8 @@ const globalForStorage = globalThis as unknown as {
 };
 
 const storage = globalForStorage.storage ?? new Map<string, StoredAnalysis>();
-let statsAnalyses = globalForStorage.statsAnalyses ?? 1250; // Start with fake stats
-let statsSavings = globalForStorage.statsSavings ?? 185000;
+let statsAnalyses = globalForStorage.statsAnalyses ?? 200; // Start with fake stats
+let statsSavings = globalForStorage.statsSavings ?? 26700;
 
 if (process.env.NODE_ENV !== "production") {
   globalForStorage.storage = storage;
