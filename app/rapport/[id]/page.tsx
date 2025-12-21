@@ -150,10 +150,11 @@ export default function RapportPage() {
   };
 
   const copyToClipboard = async () => {
-    if (!analysis) return;
+    if (!analysis || !analysis.result) return;
     
+    const result = analysis.result!; // Non-null assertion après vérification
     try {
-      await navigator.clipboard.writeText(analysis.result.negotiation_tip);
+      await navigator.clipboard.writeText(result.negotiation_tip);
       setCopied(true);
       toast.success("Message copié !", { 
         description: "Prêt à être envoyé par SMS ou email" 
@@ -165,7 +166,7 @@ export default function RapportPage() {
   };
 
   const shareAnalysis = async (platform: "whatsapp" | "twitter" | "email") => {
-    if (!analysis) return;
+    if (!analysis || !analysis.result) return;
 
     const url = `${window.location.origin}/rapport/${id}`;
     const savings = calculateTotalSavings();
@@ -232,7 +233,7 @@ export default function RapportPage() {
   }
 
   // À ce stade, l'analyse doit être payée ET avoir un résultat
-  if (!analysis.result) {
+  if (!analysis || !analysis.result) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="text-center">
@@ -243,7 +244,8 @@ export default function RapportPage() {
     );
   }
 
-  const result = analysis.result;
+  // TypeScript sait maintenant que result existe (non-null assertion après vérification)
+  const result = analysis.result!;
   const totalSavings = calculateTotalSavings();
 
   return (
