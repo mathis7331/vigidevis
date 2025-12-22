@@ -152,31 +152,83 @@ export default function Home() {
       reader.onload = async () => {
         const base64 = reader.result as string;
         
-        // Show progress screen
-        toast.loading('Préparation de votre devis...', { id: 'upload' });
-        setShowProgress(true);
-
-        // Wait 2 seconds for progress animation (simulation)
-        setTimeout(async () => {
-          // Save image to KV store WITHOUT analysis (saves OpenAI credits!)
-          const saveResult = await createPendingAnalysis(base64, selectedCategory || undefined);
+        // ÉTAPE 1 : Pré-vérification gratuite avec gpt-4o-mini
+        toast.loading('Analyse du document en cours...', { id: 'upload' });
+        
+        try {
+          // Extraire le base64 pur (sans le préfixe data:image/...)
+          const base64Data = base64.includes(',') ? base64.split(',')[1] : base64;
           
-          if (saveResult.success && saveResult.id) {
-            toast.success('Devis prêt !', { id: 'upload' });
-            setShowProgress(false);
-            setIsAnalyzing(false);
-            
-            // Redirect to rapport page (will show paywall)
-            router.push(`/rapport/${saveResult.id}`);
-          } else {
-            setShowProgress(false);
-            setIsAnalyzing(false);
-            toast.error('Erreur', { 
+          const checkResponse = await fetch('/api/check-document', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({ imageBase64: base64Data }),
+          });
+
+          const checkData = await checkResponse.json();
+
+          if (!checkData.success || !checkData.valid) {
+            // Document non reconnu comme devis valide
+            toast.error('Document non reconnu', { 
               id: 'upload',
-              description: saveResult.error || "Impossible de sauvegarder le devis"
+              description: "Veuillez uploader un devis de travaux, rénovation ou construction."
             });
+            setIsAnalyzing(false);
+            return;
           }
-        }, 2000);
+
+          // Document valide, continuer avec le processus normal
+          toast.loading('Préparation de votre devis...', { id: 'upload' });
+          setShowProgress(true);
+
+          // Wait 2 seconds for progress animation (simulation)
+          setTimeout(async () => {
+            // Save image to KV store WITHOUT analysis (saves OpenAI credits!)
+            const saveResult = await createPendingAnalysis(base64Data, selectedCategory || undefined);
+            
+            if (saveResult.success && saveResult.id) {
+              toast.success('Devis prêt !', { id: 'upload' });
+              setShowProgress(false);
+              setIsAnalyzing(false);
+              
+              // Redirect to rapport page (will show paywall)
+              router.push(`/rapport/${saveResult.id}`);
+            } else {
+              setShowProgress(false);
+              setIsAnalyzing(false);
+              toast.error('Erreur', { 
+                id: 'upload',
+                description: saveResult.error || "Impossible de sauvegarder le devis"
+              });
+            }
+          }, 2000);
+        } catch (checkError) {
+          console.error('Error checking document:', checkError);
+          // En cas d'erreur de vérification, on continue quand même (pour ne pas bloquer)
+          toast.loading('Préparation de votre devis...', { id: 'upload' });
+          setShowProgress(true);
+
+          setTimeout(async () => {
+            const base64Data = base64.includes(',') ? base64.split(',')[1] : base64;
+            const saveResult = await createPendingAnalysis(base64Data, selectedCategory || undefined);
+            
+            if (saveResult.success && saveResult.id) {
+              toast.success('Devis prêt !', { id: 'upload' });
+              setShowProgress(false);
+              setIsAnalyzing(false);
+              router.push(`/rapport/${saveResult.id}`);
+            } else {
+              setShowProgress(false);
+              setIsAnalyzing(false);
+              toast.error('Erreur', { 
+                id: 'upload',
+                description: saveResult.error || "Impossible de sauvegarder le devis"
+              });
+            }
+          }, 2000);
+        }
       };
 
       reader.onerror = () => {
