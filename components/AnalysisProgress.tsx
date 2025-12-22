@@ -8,32 +8,32 @@ const analysisSteps = [
   {
     icon: Search,
     message: "Extraction des données du devis...",
-    duration: 600,
+    duration: 1200, // 1.2 secondes
   },
   {
     icon: TrendingUp,
     message: "Analyse des prix des matériaux (cuivre, acier, béton)...",
-    duration: 700,
+    duration: 1500, // 1.5 secondes (plus long car message plus long)
   },
   {
     icon: Search,
     message: "Comparaison avec 50 fournisseurs locaux...",
-    duration: 650,
+    duration: 1300, // 1.3 secondes
   },
   {
     icon: Calculator,
     message: "Calcul des marges standards du marché...",
-    duration: 600,
+    duration: 1200, // 1.2 secondes
   },
   {
     icon: Zap,
     message: "Détection de frais cachés et surfacturations...",
-    duration: 550,
+    duration: 1400, // 1.4 secondes
   },
   {
     icon: CheckCircle,
     message: "Finalisation du verdict...",
-    duration: 500,
+    duration: 1000, // 1 seconde
   },
 ];
 
@@ -46,14 +46,18 @@ export function AnalysisProgress({ onComplete }: AnalysisProgressProps) {
   const [currentStep, setCurrentStep] = useState(0);
 
   useEffect(() => {
-    // Progress bar animation (3 seconds total)
+    // Calculer la durée totale (somme de toutes les durées)
+    const totalDuration = analysisSteps.reduce((sum, step) => sum + step.duration, 0);
+    
+    // Progress bar animation (synchronisée avec les étapes)
     const progressInterval = setInterval(() => {
       setProgress((prev) => {
         if (prev >= 100) {
           clearInterval(progressInterval);
           return 100;
         }
-        return prev + (100 / 300); // 100% in 3000ms (every 10ms)
+        // 100% en totalDuration ms (toutes les 10ms)
+        return prev + (100 / (totalDuration / 10));
       });
     }, 10);
 

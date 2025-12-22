@@ -7,18 +7,14 @@ import { AnalysisProgress } from "@/components/AnalysisProgress";
 export default function DemoPage() {
   const router = useRouter();
 
-  useEffect(() => {
-    // Simuler l'analyse pendant 3 secondes
-    const timer = setTimeout(() => {
-      // Redirect vers le rapport de démo
-      router.push("/rapport/DEMO12345");
-    }, 3100);
+  const handleComplete = () => {
+    // Rediriger vers le rapport de démo une fois l'animation terminée
+    router.push("/rapport/DEMO12345");
+  };
 
-    return () => clearTimeout(timer);
-  }, [router]);
-
-  return <AnalysisProgress onComplete={() => {}} />;
+  return <AnalysisProgress onComplete={handleComplete} />;
 }
+
 
 
 
