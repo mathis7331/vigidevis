@@ -123,6 +123,12 @@ export async function saveAnalysis(
 }
 
 export async function getAnalysis(id: string): Promise<StoredAnalysis | null> {
+  // Si c'est l'analyse de démo, s'assurer qu'elle existe
+  if (id === "DEMO12345" && !storage.has(id)) {
+    storage.set("DEMO12345", DEMO_ANALYSIS);
+    console.log(`[MOCK KV] ✅ Created demo analysis ${id}`);
+  }
+  
   const analysis = storage.get(id) || null;
   console.log(`[MOCK KV] Retrieved analysis ${id}:`, analysis ? "found" : "not found");
   return analysis;
