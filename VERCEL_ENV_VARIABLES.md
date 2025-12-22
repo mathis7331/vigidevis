@@ -128,7 +128,8 @@ https://vigidevis.vercel.app
 
 ## 🟢 Variables pour Vercel KV (Base de données) - ⚠️ OBLIGATOIRE pour la production
 
-**IMPORTANT :** Sans Vercel KV configuré, les analyses ne seront pas sauvegardées en production (erreur "analyse introuvable").
+**🚨 CRITIQUE :** Sans Vercel KV configuré, vous obtiendrez l'erreur **"analyse introuvable"** en production.  
+**Le code utilise automatiquement Vercel KV sur Vercel, mais vous devez d'abord créer la base de données KV dans votre dashboard Vercel.**
 
 ### 6. **KV_REST_API_URL** (ou VERCEL_KV_REST_API_URL)
 
