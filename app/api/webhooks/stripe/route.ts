@@ -4,6 +4,10 @@ import { markAnalysisAsPaid, incrementStats, getAnalysis, saveAnalysis } from "@
 import { analyzeQuote } from "@/actions/analyze";
 import Stripe from "stripe";
 
+// Export runtime config to ensure this route is not cached
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+
 export async function POST(req: NextRequest) {
   // Si Stripe n'est pas configuré, on retourne une erreur 503
   if (!stripe) {
@@ -190,6 +194,7 @@ export async function POST(req: NextRequest) {
       console.log(`Unhandled event type: ${event.type}`);
   }
 
-  return NextResponse.json({ received: true });
+  // Always return 200 to Stripe to confirm receipt
+  return NextResponse.json({ received: true }, { status: 200 });
 }
 
