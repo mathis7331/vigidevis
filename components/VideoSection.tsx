@@ -12,7 +12,7 @@ interface VideoSectionProps {
 export function VideoSection({ 
   videoUrl, 
   posterUrl = "/video-poster.jpg", 
-  title = "Découvrez VigiDevis en action" 
+  title = "Nos témoignages" 
 }: VideoSectionProps) {
   return (
     <motion.div

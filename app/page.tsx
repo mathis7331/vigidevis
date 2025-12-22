@@ -351,7 +351,7 @@ export default function Home() {
             <VideoSection 
               videoUrl="/demo-video.mp4" 
               posterUrl="/video-poster.jpg"
-              title="Découvrez VigiDevis en action"
+              title="Nos témoignages"
             />
 
             {/* Catégories avec Icônes */}
@@ -511,7 +511,7 @@ export default function Home() {
         isOpen={showVideoModal}
         onClose={() => setShowVideoModal(false)}
         videoUrl="/demo-video.mp4"
-        title="Découvrez VigiDevis en action"
+        title="Nos témoignages"
       />
     </>
   );
