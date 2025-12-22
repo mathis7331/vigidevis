@@ -169,11 +169,12 @@ export default function Home() {
 
           const checkData = await checkResponse.json();
 
-          if (!checkData.success || !checkData.valid) {
+          // Vérifier que la réponse est exactement VALID
+          if (!checkData.success || !checkData.valid || checkData.result !== "VALID") {
             // Document non reconnu comme devis valide
-            toast.error('Document non reconnu', { 
+            toast.error('Document non reconnu comme un devis', { 
               id: 'upload',
-              description: "Veuillez uploader un devis de travaux, rénovation ou construction."
+              description: "Veuillez uploader un vrai devis pour continuer."
             });
             setIsAnalyzing(false);
             return;
