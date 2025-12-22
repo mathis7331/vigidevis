@@ -110,20 +110,25 @@ export async function POST(req: NextRequest) {
               if (analysis.result.trust_score >= 90) {
                 console.log(`🎉 Score ${analysis.result.trust_score}/100 ≥ 90 → Remboursement automatique`);
                 
-                try {
-                  await stripe.refunds.create({
-                    payment_intent: session.payment_intent as string,
-                    reason: "requested_by_customer",
-                    metadata: {
-                      analysisId,
-                      reason: "Garantie remboursé - Devis déjà au prix juste",
-                      trust_score: analysis.result.trust_score.toString()
-                    }
-                  });
-                  
-                  console.log(`✅ Remboursement effectué pour l'analyse ${analysisId}`);
-                } catch (refundError) {
-                  console.error("Erreur lors du remboursement:", refundError);
+                // Vérifier que stripe est configuré avant de faire le remboursement
+                if (stripe && session.payment_intent) {
+                  try {
+                    await stripe.refunds.create({
+                      payment_intent: session.payment_intent as string,
+                      reason: "requested_by_customer",
+                      metadata: {
+                        analysisId,
+                        reason: "Garantie remboursé - Devis déjà au prix juste",
+                        trust_score: analysis.result.trust_score.toString()
+                      }
+                    });
+                    
+                    console.log(`✅ Remboursement effectué pour l'analyse ${analysisId}`);
+                  } catch (refundError) {
+                    console.error("Erreur lors du remboursement:", refundError);
+                  }
+                } else {
+                  console.warn(`⚠️ Cannot process refund for ${analysisId}: Stripe not configured or no payment_intent`);
                 }
               }
 
