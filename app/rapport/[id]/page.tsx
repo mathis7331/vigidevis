@@ -57,62 +57,79 @@ export default function RapportPage() {
           // On attend que le webhook Stripe ait marqué l'analyse comme payée
           toast.loading("Vérification du paiement...", { id: "payment-check" });
           
-          // L'analyse OpenAI peut prendre 5-10 secondes, on fait plusieurs tentatives
+          // L'analyse OpenAI peut prendre 10-20 secondes, on fait plusieurs tentatives
           let attempts = 0;
-          const maxAttempts = 10; // 10 tentatives sur 30 secondes
+          const maxAttempts = 20; // 20 tentatives sur ~60 secondes
+          const checkInterval = 3000; // 3 secondes entre chaque tentative
           
           const checkPayment = async (): Promise<boolean> => {
             attempts++;
-            const response = await fetch(`/api/analysis/${id}`);
-            const data = await response.json();
+            console.log(`[Payment Check] Attempt ${attempts}/${maxAttempts} for analysis ${id}`);
             
-            if (data.success && data.analysis) {
-              setAnalysis(data.analysis);
+            try {
+              const response = await fetch(`/api/analysis/${id}`);
+              const data = await response.json();
               
-              if (data.analysis.isPaid) {
-                // Si l'analyse est en cours (payé mais pas encore de résultat)
-                if (data.analysis.isPaid && !data.analysis.result) {
-                  toast.loading("Analyse en cours...", { 
-                    id: "payment-check",
-                    description: "Votre devis est en train d'être analysé par l'IA" 
-                  });
-                  return false; // Continuer à vérifier
-                }
+              if (data.success && data.analysis) {
+                setAnalysis(data.analysis);
                 
-                // Analyse complète !
-                toast.success("Paiement confirmé !", { 
-                  id: "payment-check",
-                  description: "Votre analyse complète est maintenant disponible" 
-                });
-                setShowPaywall(false);
-                return true; // Succès
+                if (data.analysis.isPaid) {
+                  // Si l'analyse est en cours (payé mais pas encore de résultat)
+                  if (data.analysis.isPaid && !data.analysis.result) {
+                    toast.loading("Analyse en cours...", { 
+                      id: "payment-check",
+                      description: `Votre devis est en train d'être analysé par l'IA (${attempts}/${maxAttempts})` 
+                    });
+                    return false; // Continuer à vérifier
+                  }
+                  
+                  // Analyse complète !
+                  toast.success("Paiement confirmé !", { 
+                    id: "payment-check",
+                    description: "Votre analyse complète est maintenant disponible" 
+                  });
+                  setShowPaywall(false);
+                  return true; // Succès
+                } else {
+                  // Pas encore payé, continuer à vérifier
+                  console.log(`[Payment Check] Analysis ${id} not yet marked as paid`);
+                  return false;
+                }
+              } else {
+                console.error(`[Payment Check] Failed to fetch analysis ${id}:`, data.error);
+                return false;
               }
+            } catch (error) {
+              console.error(`[Payment Check] Error checking payment for ${id}:`, error);
+              return false;
             }
-            
-            // Si on n'a pas encore atteint le max, réessayer
-            if (attempts < maxAttempts) {
-              return false; // Continuer
-            }
-            
-            // Timeout après 10 tentatives
-            toast.error("Le paiement est en cours de traitement", { 
-              id: "payment-check",
-              description: "Veuillez recharger la page dans quelques instants"
-            });
-            return true; // Arrêter les tentatives
           };
           
-          // Première vérification après 3 secondes
-          setTimeout(async () => {
+          // Première vérification après 2 secondes (le webhook peut être rapide)
+          const startChecking = async () => {
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
             let done = false;
             while (!done && attempts < maxAttempts) {
               done = await checkPayment();
-              if (!done) {
-                // Attendre 3 secondes entre chaque tentative
-                await new Promise(resolve => setTimeout(resolve, 3000));
+              
+              if (!done && attempts < maxAttempts) {
+                // Attendre avant la prochaine tentative
+                await new Promise(resolve => setTimeout(resolve, checkInterval));
               }
             }
-          }, 3000);
+            
+            // Si on a atteint le max sans succès
+            if (!done && attempts >= maxAttempts) {
+              console.error(`[Payment Check] Timeout after ${maxAttempts} attempts for ${id}`);
+              toast.error("Le paiement est en cours de traitement", { 
+                id: "payment-check",
+                description: "Veuillez recharger la page dans quelques instants. Si le problème persiste, contactez le support."
+              });
+            }
+          };
+          
+          startChecking();
         } else if (payment === "cancelled") {
           toast.info("Paiement annulé", {
             description: "Vous pouvez débloquer l'analyse à tout moment"

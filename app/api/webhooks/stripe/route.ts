@@ -55,6 +55,13 @@ export async function POST(req: NextRequest) {
 
           if (!pendingAnalysis || !pendingAnalysis.imageBase64) {
             console.error(`❌ Analysis ${analysisId} not found or missing image`);
+            // Mark as paid anyway (user already paid, even if we can't analyze)
+            try {
+              await markAnalysisAsPaid(analysisId);
+              console.log(`✅ Marked ${analysisId} as paid (no image to analyze)`);
+            } catch (markError) {
+              console.error(`❌ Failed to mark ${analysisId} as paid:`, markError);
+            }
             // Return 200 to prevent Stripe from retrying
             return NextResponse.json({ 
               error: "Analysis not found",

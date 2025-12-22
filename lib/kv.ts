@@ -155,12 +155,29 @@ async function getAnalysisVercel(id: string): Promise<StoredAnalysis | null> {
 }
 
 async function markAnalysisAsPaidVercel(id: string): Promise<boolean> {
-  const analysis = await getAnalysisVercel(id);
-  if (!analysis) return false;
-  analysis.isPaid = true;
-  await saveAnalysisVercel(id, analysis.result!, true, analysis.category);
-  console.log(`[VERCEL KV] Marked analysis ${id} as paid`);
-  return true;
+  try {
+    const analysis = await getAnalysisVercel(id);
+    if (!analysis) {
+      console.error(`[VERCEL KV] Cannot mark ${id} as paid: analysis not found`);
+      return false;
+    }
+    
+    // Si l'analyse a déjà un résultat, on le sauvegarde avec isPaid=true
+    if (analysis.result) {
+      await saveAnalysisVercel(id, analysis.result, true, analysis.category);
+    } else {
+      // Si pas encore de résultat, on met juste à jour isPaid
+      const { kv } = await import("@vercel/kv");
+      analysis.isPaid = true;
+      await kv.set(`analysis:${id}`, analysis, { ex: 60 * 60 * 24 * 30 });
+    }
+    
+    console.log(`[VERCEL KV] ✅ Marked analysis ${id} as paid`);
+    return true;
+  } catch (error) {
+    console.error(`[VERCEL KV] ❌ Error marking ${id} as paid:`, error);
+    return false;
+  }
 }
 
 async function incrementStatsVercel(type: "analyses" | "savings", value: number = 1): Promise<void> {
