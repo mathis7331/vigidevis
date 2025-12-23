@@ -856,14 +856,16 @@ function RapportContent() {
 
 export default function RapportPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto mb-4" />
-          <p className="text-gray-600">Chargement de votre rapport...</p>
+    <Suspense 
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-white">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto mb-4" />
+            <p className="text-gray-600">Chargement de votre rapport...</p>
+          </div>
         </div>
-      </div>
-    }>
+      }
+    >
       <RapportContent />
     </Suspense>
   );
