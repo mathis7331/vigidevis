@@ -20,14 +20,16 @@ export function Logo({ size = "md", className = "", showText = true }: LogoProps
 
   return (
     <div className={`flex items-center gap-3 ${className}`}>
-      <div className={`${sizeConfig.container} relative flex-shrink-0`}>
+      <div className={`${sizeConfig.container} relative flex-shrink-0 overflow-hidden`}>
         <Image
           src="/logo.png"
           alt="VigiDevis Logo"
-          width={sizeConfig.image}
-          height={sizeConfig.image}
-          className="object-contain"
+          width={2048}
+          height={2048}
+          className="w-full h-full object-contain"
           priority
+          unoptimized
+          style={{ objectFit: 'contain' }}
         />
       </div>
       {showText && (
@@ -48,14 +50,16 @@ export function LogoIcon({ size = "md", className = "" }: Omit<LogoProps, "showT
   const sizeConfig = sizes[size];
 
   return (
-    <div className={`${sizeConfig.container} relative flex-shrink-0 ${className}`}>
+    <div className={`${sizeConfig.container} relative flex-shrink-0 overflow-hidden ${className}`}>
       <Image
         src="/logo.png"
         alt="VigiDevis"
-        width={sizeConfig.image}
-        height={sizeConfig.image}
-        className="object-contain"
+        width={2048}
+        height={2048}
+        className="w-full h-full object-contain"
         priority
+        unoptimized
+        style={{ objectFit: 'contain' }}
       />
     </div>
   );
