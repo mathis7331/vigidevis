@@ -36,6 +36,8 @@ export default function RapportPage() {
   const [copied, setCopied] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
+  const [pollingAttempts, setPollingAttempts] = useState(0);
+  const [analysisStartTime, setAnalysisStartTime] = useState<number | null>(null);
 
   useEffect(() => {
     async function fetchAnalysis() {
@@ -277,14 +279,175 @@ export default function RapportPage() {
     }
   };
 
+  // POLLING AUTOMATIQUE : Si payé mais analyse pas encore terminée
+  useEffect(() => {
+    // Ne démarrer le polling que si l'analyse est payée mais pas encore terminée
+    if (!analysis || !analysis.isPaid || analysis.result || analysis.error) {
+      return;
+    }
+
+    // Enregistrer le temps de début si ce n'est pas déjà fait
+    if (analysisStartTime === null) {
+      setAnalysisStartTime(Date.now());
+    }
+
+    const maxPollingAttempts = 60; // 60 tentatives = 3 minutes max (3s * 60)
+    const pollingInterval = 3000; // 3 secondes entre chaque vérification
+    const maxDuration = 3 * 60 * 1000; // 3 minutes maximum
+
+    let attempts = 0;
+    let pollingActive = true;
+
+    const pollAnalysis = async () => {
+      if (!pollingActive) return;
+
+      attempts++;
+      setPollingAttempts(attempts);
+
+      // Vérifier le timeout
+      const elapsed = analysisStartTime ? Date.now() - analysisStartTime : 0;
+      if (elapsed > maxDuration) {
+        console.error(`[POLLING] Timeout after ${elapsed}ms for analysis ${id}`);
+        pollingActive = false;
+        toast.error("L'analyse prend plus de temps que prévu", {
+          description: "Veuillez recharger la page ou contacter le support si le problème persiste.",
+        });
+        return;
+      }
+
+      // Vérifier le nombre de tentatives
+      if (attempts >= maxPollingAttempts) {
+        console.error(`[POLLING] Max attempts reached (${maxPollingAttempts}) for analysis ${id}`);
+        pollingActive = false;
+        toast.error("L'analyse prend plus de temps que prévu", {
+          description: "Veuillez recharger la page ou contacter le support si le problème persiste.",
+        });
+        return;
+      }
+
+      try {
+        console.log(`[POLLING] Attempt ${attempts}/${maxPollingAttempts} for analysis ${id}`);
+        const response = await fetch(`/api/analysis/${id}`);
+        const data = await response.json();
+
+        if (data.success && data.analysis) {
+          setAnalysis(data.analysis);
+
+          // Si l'analyse est terminée (avec résultat ou erreur)
+          if (data.analysis.result) {
+            console.log(`[POLLING] ✅ Analysis ${id} completed with result`);
+            pollingActive = false;
+            toast.success("Analyse terminée !", {
+              description: "Votre rapport est maintenant disponible.",
+            });
+            return;
+          }
+
+          if (data.analysis.error) {
+            console.log(`[POLLING] ❌ Analysis ${id} has error:`, data.analysis.error);
+            pollingActive = false;
+            toast.error("Erreur d'analyse", {
+              description: "L'analyse a échoué. Vous pouvez réessayer avec le bouton ci-dessous.",
+            });
+            return;
+          }
+
+          // Sinon, continuer le polling
+          if (pollingActive && attempts < maxPollingAttempts) {
+            setTimeout(pollAnalysis, pollingInterval);
+          }
+        } else {
+          console.error(`[POLLING] Failed to fetch analysis ${id}:`, data.error);
+          // Continuer quand même le polling en cas d'erreur réseau temporaire
+          if (pollingActive && attempts < maxPollingAttempts) {
+            setTimeout(pollAnalysis, pollingInterval);
+          }
+        }
+      } catch (error) {
+        console.error(`[POLLING] Error polling analysis ${id}:`, error);
+        // Continuer le polling en cas d'erreur
+        if (pollingActive && attempts < maxPollingAttempts) {
+          setTimeout(pollAnalysis, pollingInterval);
+        }
+      }
+    };
+
+    // Démarrer le polling après 2 secondes (donner le temps au webhook)
+    const timeoutId = setTimeout(() => {
+      pollAnalysis();
+    }, 2000);
+
+    // Cleanup
+    return () => {
+      pollingActive = false;
+      clearTimeout(timeoutId);
+    };
+  }, [analysis?.isPaid, analysis?.result, analysis?.error, id, analysisStartTime]);
+
   // Si payé mais analyse pas encore terminée (webhook en cours) ET pas d'erreur
   if (analysis.isPaid && !analysis.result && !analysis.error) {
+    const elapsedSeconds = analysisStartTime 
+      ? Math.floor((Date.now() - analysisStartTime) / 1000) 
+      : 0;
+    const minutes = Math.floor(elapsedSeconds / 60);
+    const seconds = elapsedSeconds % 60;
+
     return (
-      <div className="min-h-screen flex items-center justify-center bg-white">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto mb-4" />
-          <p className="text-gray-600">Analyse en cours...</p>
-          <p className="text-sm text-gray-500 mt-2">Votre devis est en train d'être analysé par l'IA</p>
+      <div className="min-h-screen flex items-center justify-center bg-white px-6">
+        <div className="text-center max-w-md">
+          <div className="relative mb-8">
+            <div className="animate-spin rounded-full h-16 w-16 border-4 border-emerald-200 border-t-emerald-600 mx-auto" />
+            <div className="absolute inset-0 flex items-center justify-center">
+              <div className="w-8 h-8 bg-emerald-600 rounded-full animate-pulse" />
+            </div>
+          </div>
+          
+          <h2 className="text-2xl font-bold text-gray-900 mb-3">Analyse en cours...</h2>
+          <p className="text-gray-600 mb-2">
+            Votre devis est en train d'être analysé par l'IA
+          </p>
+          <p className="text-sm text-gray-500 mb-6">
+            Cela peut prendre entre 10 et 30 secondes
+          </p>
+
+          {/* Compteur de temps */}
+          {elapsedSeconds > 0 && (
+            <div className="mb-6 p-4 bg-gray-50 rounded-xl border border-gray-200">
+              <p className="text-sm text-gray-600 mb-1">Temps écoulé</p>
+              <p className="text-lg font-semibold text-gray-900">
+                {minutes > 0 ? `${minutes}m ` : ''}{seconds}s
+              </p>
+            </div>
+          )}
+
+          {/* Bouton de rechargement manuel */}
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={async () => {
+              setPollingAttempts(0);
+              const response = await fetch(`/api/analysis/${id}`);
+              const data = await response.json();
+              if (data.success) {
+                setAnalysis(data.analysis);
+                if (data.analysis.result || data.analysis.error) {
+                  // L'analyse est terminée, le useEffect se chargera de mettre à jour
+                  window.location.reload();
+                }
+              }
+            }}
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-emerald-50 text-emerald-700 font-semibold hover:bg-emerald-100 transition-colors border border-emerald-200"
+          >
+            <RefreshCcw className="w-5 h-5" strokeWidth={2.5} />
+            <span>Recharger</span>
+          </motion.button>
+
+          {/* Message si ça prend trop de temps */}
+          {elapsedSeconds > 60 && (
+            <p className="mt-4 text-xs text-gray-500">
+              L'analyse prend plus de temps que prévu. Si cela persiste, contactez le support.
+            </p>
+          )}
         </div>
       </div>
     );
