@@ -6,7 +6,6 @@ import { motion } from "framer-motion";
 import {
   AlertTriangle,
   Home,
-  Shield,
   TrendingDown,
   Copy,
   Check,
@@ -19,6 +18,7 @@ import {
   Share2,
 } from "lucide-react";
 import { CircularScore } from "@/components/CircularScore";
+import { Logo, LogoIcon } from "@/components/Logo";
 import { LineItemCard } from "@/components/LineItemCard";
 import { Paywall } from "@/components/Paywall";
 import { StoredAnalysis } from "@/lib/kv";
@@ -545,9 +545,7 @@ function RapportContent() {
       <header className="py-5 px-6 border-b border-gray-200 bg-white sticky top-0 z-40 backdrop-blur-sm bg-white/90 shadow-sm">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
-              <Shield className="w-6 h-6 text-white" strokeWidth={2.5} />
-            </div>
+            <LogoIcon size="md" />
             <div>
               <h1 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">
                 VigiDevis

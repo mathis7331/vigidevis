@@ -1,8 +1,9 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Shield, ArrowLeft } from "lucide-react";
+import { ArrowLeft, ShieldCheck } from "lucide-react";
 import Link from "next/link";
+import { Logo, LogoIcon } from "@/components/Logo";
 
 export default function CGVPage() {
   return (
@@ -10,15 +11,8 @@ export default function CGVPage() {
       {/* Header */}
       <header className="py-5 px-6 border-b border-gray-100 bg-white sticky top-0 z-40 backdrop-blur-sm bg-white/90">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
-          <Link href="/" className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
-              <Shield className="w-6 h-6 text-white" strokeWidth={2.5} />
-            </div>
-            <div>
-              <h1 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">
-                VigiDevis
-              </h1>
-            </div>
+          <Link href="/">
+            <Logo size="md" />
           </Link>
           <Link
             href="/"
@@ -41,7 +35,7 @@ export default function CGVPage() {
             className="mb-12"
           >
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 font-medium mb-6 text-sm">
-              <Shield className="w-4 h-4" strokeWidth={2.5} />
+              <ShieldCheck className="w-4 h-4" strokeWidth={2.5} />
               <span>Document Légal</span>
             </div>
             <h1 className="text-4xl md:text-5xl font-bold text-gray-900 mb-4">
@@ -146,12 +140,7 @@ export default function CGVPage() {
       <footer className="py-12 px-6 border-t border-gray-100 bg-gray-50 mt-16">
         <div className="max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center">
-                <Shield className="w-5 h-5 text-white" strokeWidth={2.5} />
-              </div>
-              <span className="font-bold text-gray-900">VigiDevis</span>
-            </div>
+            <Logo size="sm" />
             <p className="text-sm text-gray-500">
               © 2024 VigiDevis. Votre partenaire de confiance pour des devis justes.
             </p>

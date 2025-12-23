@@ -4,7 +4,8 @@ import { useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Shield, Sparkles, Car, Hammer, Stethoscope, Smartphone, TrendingDown, Eye, Play, Lock, HelpCircle, CheckCircle2, Trash2, RotateCcw } from "lucide-react";
+import { Sparkles, Car, Hammer, Stethoscope, Smartphone, TrendingDown, Eye, Play, Lock, HelpCircle, CheckCircle2, Trash2, RotateCcw, ShieldCheck } from "lucide-react";
+import { Logo, LogoIcon } from "@/components/Logo";
 import { CategoryBadge } from "@/components/CategoryBadge";
 import { UploadZone } from "@/components/UploadZone";
 import { AnalysisProgress } from "@/components/AnalysisProgress";
@@ -272,16 +273,7 @@ export default function Home() {
         {/* Header - VigiDevis */}
         <header className="py-5 px-6 border-b border-gray-100 bg-white sticky top-0 z-40 backdrop-blur-sm bg-white/90">
           <div className="max-w-7xl mx-auto flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
-                <Shield className="w-6 h-6 text-white" strokeWidth={2.5} />
-              </div>
-              <div>
-                <h1 className="text-2xl md:text-3xl font-bold text-gray-900 tracking-tight">
-                  VigiDevis
-                </h1>
-              </div>
-            </div>
+            <Logo size="md" />
             <motion.a
               href="#faq"
               whileHover={{ scale: 1.02 }}
@@ -468,15 +460,15 @@ export default function Home() {
                 className="mt-6 flex items-center justify-center gap-6 text-sm text-gray-500"
               >
                 <div className="flex items-center gap-2">
-                  <Shield className="w-4 h-4 text-emerald-600" strokeWidth={2} />
+                  <ShieldCheck className="w-4 h-4 text-emerald-600" strokeWidth={2} />
                   <span>100% confidentiel</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Shield className="w-4 h-4 text-emerald-600" strokeWidth={2} />
+                  <ShieldCheck className="w-4 h-4 text-emerald-600" strokeWidth={2} />
                   <span>RGPD Ready</span>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Shield className="w-4 h-4 text-emerald-600" strokeWidth={2} />
+                  <ShieldCheck className="w-4 h-4 text-emerald-600" strokeWidth={2} />
                   <span>Paiement sécurisé</span>
                 </div>
               </motion.div>
@@ -551,12 +543,7 @@ export default function Home() {
               
               {/* Brand & Copyright */}
               <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 flex items-center justify-center">
-                    <Shield className="w-5 h-5 text-white" strokeWidth={2.5} />
-                  </div>
-                  <span className="font-bold text-gray-900">VigiDevis</span>
-                </div>
+                <Logo size="sm" />
                 <p className="text-sm text-gray-500">
                   © 2024 VigiDevis. Votre partenaire de confiance pour des devis justes.
                 </p>
