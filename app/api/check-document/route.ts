@@ -5,13 +5,43 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+/**
+ * Nettoie et formate le Base64 pour OpenAI
+ */
+function formatBase64ForOpenAI(imageBase64: string): string {
+  // Nettoyer la chaîne : enlever retours à la ligne, espaces, etc.
+  let cleaned = imageBase64.trim().replace(/\s+/g, '');
+  
+  // Si le préfixe data:image/ est déjà présent, le retourner tel quel
+  if (cleaned.startsWith('data:image/')) {
+    return cleaned;
+  }
+  
+  // Détecter le type MIME
+  const base64Data = cleaned.includes(',') ? cleaned.split(',')[1] : cleaned;
+  const firstChars = base64Data.substring(0, 20);
+  
+  let mimeType = 'image/jpeg'; // Par défaut JPEG
+  
+  if (firstChars.startsWith('iVBORw0KGgo')) {
+    mimeType = 'image/png';
+  } else if (firstChars.startsWith('/9j/')) {
+    mimeType = 'image/jpeg';
+  } else if (firstChars.startsWith('UklGR')) {
+    mimeType = 'image/webp';
+  }
+  
+  // Formater avec le préfixe data URI
+  return `data:${mimeType};base64,${base64Data}`;
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { imageBase64 } = await req.json();
 
-    if (!imageBase64) {
+    if (!imageBase64 || typeof imageBase64 !== 'string' || imageBase64.trim().length < 100) {
       return NextResponse.json(
-        { success: false, error: "Image manquante" },
+        { success: false, error: "Image manquante ou corrompue" },
         { status: 400 }
       );
     }
@@ -22,6 +52,9 @@ export async function POST(req: NextRequest) {
         { status: 503 }
       );
     }
+
+    // Formater le Base64 pour OpenAI
+    const formattedImageUrl = formatBase64ForOpenAI(imageBase64);
 
     // Utiliser gpt-4o-mini (très économique) pour la pré-vérification
     const response = await openai.chat.completions.create({
@@ -41,7 +74,8 @@ export async function POST(req: NextRequest) {
             {
               type: "image_url",
               image_url: {
-                url: `data:image/jpeg;base64,${imageBase64}`,
+                url: formattedImageUrl, // Format data:image/jpeg;base64,...
+                detail: "low",
               },
             },
           ],

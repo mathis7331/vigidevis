@@ -63,6 +63,66 @@ RÈGLES STRICTES :
 - Pour "negotiation_tip" : écris un MESSAGE COMPLET avec bonjour, contexte, problème, négociation et formule de politesse (prêt à être copié/collé ou envoyé par SMS)`;
 
 /**
+ * Nettoie et formate le Base64 pour OpenAI
+ * @param imageBase64 - Chaîne Base64 (peut contenir le préfixe data:image/... ou non)
+ * @returns URL formatée pour OpenAI (data:image/jpeg;base64,... ou data:image/png;base64,...)
+ */
+function formatBase64ForOpenAI(imageBase64: string): string {
+  // Nettoyer la chaîne : enlever retours à la ligne, espaces, etc.
+  let cleaned = imageBase64.trim().replace(/\s+/g, '');
+  
+  // Si le préfixe data:image/ est déjà présent, le retourner tel quel
+  if (cleaned.startsWith('data:image/')) {
+    return cleaned;
+  }
+  
+  // Détecter le type MIME en analysant les premiers bytes du Base64
+  // PNG commence par iVBORw0KGgo (base64 de la signature PNG)
+  // JPEG commence par /9j/ (base64 de la signature JPEG)
+  const base64Data = cleaned.includes(',') ? cleaned.split(',')[1] : cleaned;
+  const firstChars = base64Data.substring(0, 20);
+  
+  let mimeType = 'image/jpeg'; // Par défaut JPEG (OpenAI est flexible)
+  
+  if (firstChars.startsWith('iVBORw0KGgo')) {
+    mimeType = 'image/png';
+  } else if (firstChars.startsWith('/9j/')) {
+    mimeType = 'image/jpeg';
+  } else if (firstChars.startsWith('UklGR')) {
+    mimeType = 'image/webp';
+  }
+  
+  // Formater avec le préfixe data URI
+  return `data:${mimeType};base64,${base64Data}`;
+}
+
+/**
+ * Valide que l'image Base64 est valide
+ */
+function validateBase64Image(imageBase64: string): { valid: boolean; error?: string } {
+  if (!imageBase64 || typeof imageBase64 !== 'string') {
+    return { valid: false, error: 'Base64 image is missing or not a string' };
+  }
+  
+  const cleaned = imageBase64.trim();
+  
+  if (cleaned.length < 100) {
+    return { valid: false, error: 'Base64 image is too short (corrupted or empty)' };
+  }
+  
+  // Extraire les données Base64 (après la virgule si préfixe présent)
+  const base64Data = cleaned.includes(',') ? cleaned.split(',')[1] : cleaned;
+  
+  // Vérifier que c'est du Base64 valide (caractères alphanumériques + / + =)
+  const base64Regex = /^[A-Za-z0-9+/]*={0,2}$/;
+  if (!base64Regex.test(base64Data)) {
+    return { valid: false, error: 'Base64 image contains invalid characters' };
+  }
+  
+  return { valid: true };
+}
+
+/**
  * Fonction helper pour appeler OpenAI avec retry logic
  */
 async function callOpenAIWithRetry(
@@ -73,6 +133,19 @@ async function callOpenAIWithRetry(
 ): Promise<{ success: boolean; content?: string; error?: string }> {
   try {
     console.log(`[ANALYSE STEP ${attempt}/${maxAttempts}] Envoi requête OpenAI...`);
+    
+    // Valider et formater le Base64
+    const validation = validateBase64Image(imageBase64);
+    if (!validation.valid) {
+      console.error(`[ANALYSE STEP ${attempt}/${maxAttempts}] ❌ ${validation.error}`);
+      return {
+        success: false,
+        error: validation.error || 'Image Base64 invalide',
+      };
+    }
+    
+    const formattedImageUrl = formatBase64ForOpenAI(imageBase64);
+    console.log(`[ANALYSE STEP ${attempt}/${maxAttempts}] ✅ Image formatée pour OpenAI (${formattedImageUrl.substring(0, 30)}...)`);
     
     const response = await openai.chat.completions.create({
       model: "gpt-4o",
@@ -91,7 +164,7 @@ async function callOpenAIWithRetry(
             {
               type: "image_url",
               image_url: {
-                url: imageBase64,
+                url: formattedImageUrl, // Format data:image/jpeg;base64,...
                 detail: "high",
               },
             },
@@ -230,11 +303,22 @@ export async function analyzeQuote(
     // VALIDATION D'ENTRÉE
     console.log('[ANALYSE STEP] 🚀 Début de l\'analyse IA...');
     
-    if (!imageBase64 || imageBase64.trim().length === 0) {
-      console.error('[ANALYSE STEP] ❌ Image base64 manquante ou vide');
+    // Validation stricte de l'image Base64
+    if (!imageBase64 || typeof imageBase64 !== 'string' || imageBase64.trim().length === 0) {
+      console.error('[ANALYSE STEP] ❌ [ERROR] Base64 image is missing or corrupted');
       return {
         success: false,
         error: "Image manquante. Veuillez réessayer avec un document valide.",
+      };
+    }
+    
+    // Validation détaillée du format Base64
+    const validation = validateBase64Image(imageBase64);
+    if (!validation.valid) {
+      console.error(`[ANALYSE STEP] ❌ [ERROR] ${validation.error}`);
+      return {
+        success: false,
+        error: validation.error || "Format d'image invalide. Veuillez réessayer avec un document valide.",
       };
     }
     
@@ -251,7 +335,11 @@ export async function analyzeQuote(
       console.log(`[ANALYSE STEP] 📁 Catégorie sélectionnée: ${category}`);
     }
     
-    console.log(`[ANALYSE STEP] 📸 Image base64: ${imageBase64.substring(0, 50)}... (${Math.round(imageBase64.length / 1024)}KB)`);
+    // Log de la taille de l'image (sans afficher tout le Base64)
+    const imageSizeKB = Math.round(imageBase64.length / 1024);
+    const imagePreview = imageBase64.substring(0, 50);
+    const hasDataPrefix = imageBase64.startsWith('data:image/');
+    console.log(`[ANALYSE STEP] 📸 Image base64: ${imagePreview}... (${imageSizeKB}KB, préfixe: ${hasDataPrefix ? 'oui' : 'non'})`);
 
     // APPEL OPENAI AVEC RETRY LOGIC
     const openAIResult = await callOpenAIWithRetry(imageBase64, category, 1, 2);
