@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Lock, Check, ShieldCheck, Zap, TrendingDown, Lightbulb, CreditCard, Trash2, RotateCcw } from "lucide-react";
+import { Lock, Check, Shield, Zap, TrendingDown, Lightbulb, CreditCard, Trash2, RotateCcw } from "lucide-react";
 import { createCheckoutSession } from "@/actions/create-checkout";
 import { toast } from "sonner";
 
@@ -146,7 +146,7 @@ export function Paywall({ analysisId, previewScore, previewSavings, priceLabel }
               </div>
 
               <div className="flex items-start gap-3 p-4 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20">
-                <ShieldCheck className="w-6 h-6 flex-shrink-0 mt-0.5" strokeWidth={2.5} />
+                <Shield className="w-6 h-6 flex-shrink-0 mt-0.5" strokeWidth={2.5} />
                 <div>
                   <p className="font-bold mb-1">Garantie remboursé</p>
                   <p className="text-sm text-emerald-100">
@@ -224,7 +224,7 @@ export function Paywall({ analysisId, previewScore, previewSavings, priceLabel }
             {/* Security badges */}
             <div className="flex items-center justify-center gap-6 mt-6 text-sm text-emerald-100">
               <div className="flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4" strokeWidth={2} />
+                <Shield className="w-4 h-4" strokeWidth={2} />
                 <span>Paiement sécurisé</span>
               </div>
               <div className="flex items-center gap-2">
