@@ -98,3 +98,4 @@ function getBase64Size(base64: string): number {
   return (base64Data.length * 3) / 4;
 }
 
+

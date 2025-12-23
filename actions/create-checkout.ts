@@ -53,7 +53,7 @@ export async function createCheckoutSession(
           quantity: 1,
         },
       ],
-      success_url: `${origin}/rapport/${analysisId}?payment=success`,
+      success_url: `${origin}/merci?session_id={CHECKOUT_SESSION_ID}&id=${analysisId}`,
       cancel_url: `${origin}/rapport/${analysisId}?payment=cancelled`,
       metadata: {
         analysisId,

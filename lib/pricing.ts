@@ -73,3 +73,4 @@ export function formatPrice(amount: number): string {
   return `${euros.toFixed(2).replace(".", ",")}€`;
 }
 
+

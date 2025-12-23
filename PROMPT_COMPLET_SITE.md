@@ -776,3 +776,4 @@ stripe listen --forward-to localhost:3000/api/webhooks/stripe
 **Version** : 1.0.0  
 **Auteur** : Développé avec ❤️ pour aider les utilisateurs à payer le prix juste
 
+
