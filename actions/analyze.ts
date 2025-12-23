@@ -374,14 +374,14 @@ export async function analyzeQuote(
 
     // VALIDATION DE LA STRUCTURE
     console.log('[ANALYSE STEP] 🔍 Validation de la structure...');
-    const validation = validateAnalysisResult(result);
-    if (!validation.valid) {
-      console.error('[ANALYSE STEP] ❌ Validation échouée:', validation.error);
+    const structureValidation = validateAnalysisResult(result);
+    if (!structureValidation.valid) {
+      console.error('[ANALYSE STEP] ❌ Validation échouée:', structureValidation.error);
       console.error('[ANALYSE STEP] Données reçues:', JSON.stringify(result, null, 2));
       
       return {
         success: false,
-        error: `Format de réponse invalide: ${validation.error}. Veuillez réessayer avec un devis plus clair.`,
+        error: `Format de réponse invalide: ${structureValidation.error}. Veuillez réessayer avec un devis plus clair.`,
       };
     }
 
