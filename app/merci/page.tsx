@@ -18,18 +18,18 @@ function SuccessContent() {
 
     const frame = () => {
       confetti({
-        particleCount: 3,
+        particleCount: 2,
         angle: 60,
         spread: 55,
         origin: { x: 0 },
-        colors: ["#10b981", "#34d399", "#ffffff"],
+        colors: ["#10b981", "#ffffff"],
       });
       confetti({
-        particleCount: 3,
+        particleCount: 2,
         angle: 120,
         spread: 55,
         origin: { x: 1 },
-        colors: ["#10b981", "#34d399", "#ffffff"],
+        colors: ["#10b981", "#ffffff"],
       });
 
       if (Date.now() < end) {
@@ -114,15 +114,18 @@ function SuccessContent() {
   );
 }
 
-export default function SuccessPage() {
+export default function MerciPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
-        <div className="text-slate-600">Chargement...</div>
-      </div>
-    }>
-      <SuccessContent />
-    </Suspense>
+    <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+      <Suspense fallback={
+        <div className="flex flex-col items-center gap-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-500"></div>
+          <p className="text-emerald-600 font-medium">Chargement de votre session...</p>
+        </div>
+      }>
+        <SuccessContent />
+      </Suspense>
+    </div>
   );
 }
 
