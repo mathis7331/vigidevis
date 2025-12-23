@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { stripe } from "@/lib/stripe";
-import { markAnalysisAsPaid, incrementStats, getAnalysis, saveAnalysis } from "@/lib/kv";
+import { markAnalysisAsPaid, incrementStats, getAnalysis, saveAnalysis, saveAnalysisError } from "@/lib/kv";
 import { analyzeQuote } from "@/actions/analyze";
 import Stripe from "stripe";
 
@@ -55,50 +55,86 @@ export async function POST(req: NextRequest) {
         // Fonction asynchrone pour traiter l'analyse en arrière-plan
         const processAnalysisAsync = async () => {
           try {
-            console.log(`🤖 Starting OpenAI analysis (async, after payment confirmation)...`);
+            console.log(`[WEBHOOK] 🤖 Starting OpenAI analysis (async, after payment confirmation) for ${analysisId}`);
             
-            // Get pending analysis (with imageBase64, no result yet)
+            // VÉRIFICATION KV : Récupérer l'analyse avec l'image
             const pendingAnalysis = await getAnalysis(analysisId);
 
-            if (!pendingAnalysis || !pendingAnalysis.imageBase64) {
-              console.error(`❌ Analysis ${analysisId} not found or missing image`);
+            if (!pendingAnalysis) {
+              console.error(`[WEBHOOK] ❌ CRITICAL: Analysis ${analysisId} not found in KV`);
+              await saveAnalysisError(
+                analysisId,
+                "ANALYSIS_NOT_FOUND",
+                `Analysis ${analysisId} not found in KV store at webhook time`,
+                true
+              );
               return;
             }
+
+            if (!pendingAnalysis.imageBase64 || pendingAnalysis.imageBase64.trim().length === 0) {
+              console.error(`[WEBHOOK] ❌ CRITICAL: Analysis ${analysisId} missing imageBase64`);
+              await saveAnalysisError(
+                analysisId,
+                "IMAGE_MISSING",
+                `Analysis ${analysisId} is missing imageBase64 in KV store`,
+                true
+              );
+              return;
+            }
+
+            console.log(`[WEBHOOK] ✅ Analysis ${analysisId} found, imageBase64: ${Math.round(pendingAnalysis.imageBase64.length / 1024)}KB`);
 
             // NOW do the OpenAI analysis (only after payment!)
             let analysisResult;
             try {
+              console.log(`[WEBHOOK] 📡 Calling analyzeQuote for ${analysisId}...`);
               analysisResult = await analyzeQuote(
                 pendingAnalysis.imageBase64,
                 pendingAnalysis.category || null
               );
+              console.log(`[WEBHOOK] 📥 analyzeQuote response: success=${analysisResult.success}`);
             } catch (error) {
-              console.error(`❌ OpenAI analysis error for ${analysisId}:`, error);
-              // Mark as paid even if analysis fails (user already paid)
-              await markAnalysisAsPaid(analysisId);
+              console.error(`[WEBHOOK] ❌ OpenAI analysis exception for ${analysisId}:`, error);
+              const errorMessage = error instanceof Error ? error.message : String(error);
+              await saveAnalysisError(
+                analysisId,
+                "IA_FAILED",
+                `OpenAI analysis exception: ${errorMessage}`,
+                true
+              );
               return;
             }
 
             if (!analysisResult.success || !analysisResult.data) {
-              console.error(`❌ OpenAI analysis failed for ${analysisId}:`, analysisResult.error);
-              // Mark as paid even if analysis fails (user already paid)
-              await markAnalysisAsPaid(analysisId);
+              console.error(`[WEBHOOK] ❌ OpenAI analysis failed for ${analysisId}: ${analysisResult.error}`);
+              await saveAnalysisError(
+                analysisId,
+                "IA_FAILED",
+                analysisResult.error || "OpenAI analysis failed without specific error",
+                true
+              );
               return;
             }
 
             // Save the analysis result and mark as paid
             try {
+              console.log(`[WEBHOOK] 💾 Saving analysis result for ${analysisId}...`);
               await saveAnalysis(
                 analysisId,
                 analysisResult.data,
                 true, // isPaid = true
                 pendingAnalysis.category
               );
-              console.log(`✅ Analysis ${analysisId} completed and saved`);
+              console.log(`[WEBHOOK] ✅ Analysis ${analysisId} completed and saved successfully`);
             } catch (saveError) {
-              console.error(`❌ Error saving analysis ${analysisId}:`, saveError);
-              // Still mark as paid
-              await markAnalysisAsPaid(analysisId);
+              console.error(`[WEBHOOK] ❌ Error saving analysis ${analysisId}:`, saveError);
+              const errorMessage = saveError instanceof Error ? saveError.message : String(saveError);
+              await saveAnalysisError(
+                analysisId,
+                "SAVE_FAILED",
+                `Failed to save analysis result: ${errorMessage}`,
+                true
+              );
               return;
             }
 
@@ -154,14 +190,20 @@ export async function POST(req: NextRequest) {
             // Increment analysis counter
             await incrementStats("analyses");
 
-            console.log(`✅ Analysis ${analysisId} completed, saved, and marked as paid`);
+            console.log(`[WEBHOOK] ✅ Analysis ${analysisId} completed, saved, and marked as paid`);
           } catch (error) {
-            console.error(`❌ Critical error processing analysis for ${analysisId}:`, error);
-            // Try to mark as paid anyway (user already paid)
+            console.error(`[WEBHOOK] ❌ Critical error processing analysis for ${analysisId}:`, error);
+            const errorMessage = error instanceof Error ? error.message : String(error);
+            // Sauvegarder l'erreur critique
             try {
-              await markAnalysisAsPaid(analysisId);
-            } catch (markError) {
-              console.error(`❌ Failed to mark ${analysisId} as paid:`, markError);
+              await saveAnalysisError(
+                analysisId,
+                "CRITICAL_ERROR",
+                `Critical error in processAnalysisAsync: ${errorMessage}`,
+                true
+              );
+            } catch (saveErrorError) {
+              console.error(`[WEBHOOK] ❌ Failed to save error for ${analysisId}:`, saveErrorError);
             }
           }
         };
@@ -169,16 +211,18 @@ export async function POST(req: NextRequest) {
         // ÉTAPE 1 : Marquer comme payé IMMÉDIATEMENT (sans attendre l'analyse)
         try {
           await markAnalysisAsPaid(analysisId);
-          console.log(`✅ Marked ${analysisId} as paid immediately`);
+          console.log(`[WEBHOOK] ✅ Marked ${analysisId} as paid immediately`);
         } catch (markError) {
-          console.error(`❌ Failed to mark ${analysisId} as paid:`, markError);
+          console.error(`[WEBHOOK] ❌ Failed to mark ${analysisId} as paid:`, markError);
           // Continue anyway, we'll try again in async process
         }
 
-        // ÉTAPE 2 : Lancer l'analyse OpenAI en arrière-plan (sans await)
-        // Ne pas bloquer la réponse à Stripe
-        processAnalysisAsync().catch((error) => {
-          console.error(`❌ Async analysis processing failed for ${analysisId}:`, error);
+        // ÉTAPE 2 : Lancer l'analyse OpenAI en arrière-plan (vraiment asynchrone)
+        // Utiliser setImmediate pour s'assurer que la réponse 200 est envoyée AVANT le traitement
+        setImmediate(() => {
+          processAnalysisAsync().catch((error) => {
+            console.error(`[WEBHOOK] ❌ Async analysis processing failed for ${analysisId}:`, error);
+          });
         });
 
         // ÉTAPE 3 : Répondre IMMÉDIATEMENT à Stripe (200 OK)

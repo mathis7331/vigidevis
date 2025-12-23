@@ -53,6 +53,11 @@ export interface StoredAnalysis {
   createdAt: string;
   category?: string;
   imageUrl?: string;
+  error?: {
+    type: string; // "IA_FAILED", "PARSING_FAILED", etc.
+    message: string;
+    timestamp: string;
+  };
 }
 
 // Détection intelligente : sur Vercel, on utilise toujours Vercel KV
@@ -117,6 +122,37 @@ async function saveAnalysisVercel(
   };
   await kv.set(`analysis:${id}`, analysis, { ex: 60 * 60 * 24 * 30 });
   console.log(`[VERCEL KV] Saved analysis ${id}`);
+}
+
+async function saveAnalysisErrorVercel(
+  id: string,
+  errorType: string,
+  errorMessage: string,
+  isPaid: boolean = true
+): Promise<void> {
+  try {
+    const { kv } = await import("@vercel/kv");
+    const existing = await kv.get<StoredAnalysis>(`analysis:${id}`);
+    
+    const analysis: StoredAnalysis = {
+      id,
+      isPaid,
+      createdAt: existing?.createdAt || new Date().toISOString(),
+      category: existing?.category,
+      imageBase64: existing?.imageBase64, // Conserver l'image pour retry
+      error: {
+        type: errorType,
+        message: errorMessage,
+        timestamp: new Date().toISOString(),
+      },
+    };
+    
+    await kv.set(`analysis:${id}`, analysis, { ex: 60 * 60 * 24 * 30 });
+    console.log(`[VERCEL KV] ✅ Saved error for analysis ${id}: ${errorType}`);
+  } catch (error) {
+    console.error(`[VERCEL KV] ❌ Error saving error for ${id}:`, error);
+    throw error;
+  }
 }
 
 async function getAnalysisVercel(id: string): Promise<StoredAnalysis | null> {
@@ -273,5 +309,18 @@ export async function getStats(): Promise<{ analyses: number; savings: number }>
     () => getStatsVercel(),
     () => mockKV.getStats(),
     'getStats()'
+  );
+}
+
+export async function saveAnalysisError(
+  id: string,
+  errorType: string,
+  errorMessage: string,
+  isPaid: boolean = true
+): Promise<void> {
+  return tryVercelKV(
+    () => saveAnalysisErrorVercel(id, errorType, errorMessage, isPaid),
+    () => mockKV.saveAnalysisError(id, errorType, errorMessage, isPaid),
+    `saveAnalysisError(${id})`
   );
 }

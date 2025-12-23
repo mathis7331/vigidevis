@@ -35,6 +35,7 @@ export default function RapportPage() {
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
   const [showPaywall, setShowPaywall] = useState(false);
+  const [isRetrying, setIsRetrying] = useState(false);
 
   useEffect(() => {
     async function fetchAnalysis() {
@@ -75,6 +76,17 @@ export default function RapportPage() {
                 setAnalysis(data.analysis);
                 
                 if (data.analysis.isPaid) {
+                  // Vérifier s'il y a une erreur
+                  if (data.analysis.error) {
+                    console.error(`[Payment Check] Analysis ${id} has error:`, data.analysis.error);
+                    toast.error("Erreur d'analyse", { 
+                      id: "payment-check",
+                      description: "L'analyse a échoué. Vous pouvez réessayer avec le bouton ci-dessous."
+                    });
+                    setShowPaywall(false);
+                    return true; // Arrêter le polling, afficher l'erreur
+                  }
+                  
                   // Si l'analyse est en cours (payé mais pas encore de résultat)
                   if (data.analysis.isPaid && !data.analysis.result) {
                     toast.loading("Analyse en cours...", { 
@@ -220,14 +232,108 @@ export default function RapportPage() {
     return null;
   }
 
-  // Si payé mais analyse pas encore terminée (webhook en cours)
-  if (analysis.isPaid && !analysis.result) {
+  // Fonction pour réessayer l'analyse
+  const handleRetryAnalysis = async () => {
+    setIsRetrying(true);
+    toast.loading("Relance de l'analyse...", { id: "retry-analysis" });
+
+    try {
+      const response = await fetch(`/api/analysis/${id}/retry`, {
+        method: "POST",
+      });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        toast.error("Erreur", {
+          id: "retry-analysis",
+          description: data.error || "Impossible de relancer l'analyse",
+        });
+        setIsRetrying(false);
+        return;
+      }
+
+      toast.success("Analyse relancée !", {
+        id: "retry-analysis",
+        description: "L'analyse est en cours, veuillez patienter...",
+      });
+
+      // Recharger l'analyse après 3 secondes
+      setTimeout(async () => {
+        const fetchResponse = await fetch(`/api/analysis/${id}`);
+        const fetchData = await fetchResponse.json();
+        if (fetchData.success) {
+          setAnalysis(fetchData.analysis);
+        }
+        setIsRetrying(false);
+      }, 3000);
+    } catch (error) {
+      console.error("Error retrying analysis:", error);
+      toast.error("Erreur", {
+        id: "retry-analysis",
+        description: "Une erreur est survenue lors de la relance",
+      });
+      setIsRetrying(false);
+    }
+  };
+
+  // Si payé mais analyse pas encore terminée (webhook en cours) ET pas d'erreur
+  if (analysis.isPaid && !analysis.result && !analysis.error) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-white">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-emerald-600 mx-auto mb-4" />
           <p className="text-gray-600">Analyse en cours...</p>
           <p className="text-sm text-gray-500 mt-2">Votre devis est en train d'être analysé par l'IA</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Si payé mais erreur d'analyse
+  if (analysis.isPaid && analysis.error) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-white px-6">
+        <div className="max-w-md w-full text-center">
+          <div className="w-16 h-16 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-6">
+            <AlertTriangle className="w-8 h-8 text-red-600" strokeWidth={2.5} />
+          </div>
+          <h2 className="text-2xl font-bold text-gray-900 mb-3">Erreur d'analyse</h2>
+          <p className="text-gray-600 mb-2">
+            L'analyse de votre devis a échoué.
+          </p>
+          <p className="text-sm text-gray-500 mb-8">
+            Type d'erreur : {analysis.error.type}
+            <br />
+            {analysis.error.message}
+          </p>
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={handleRetryAnalysis}
+            disabled={isRetrying}
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-emerald-600 text-white font-semibold hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+          >
+            {isRetrying ? (
+              <>
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                <span>Relance en cours...</span>
+              </>
+            ) : (
+              <>
+                <RefreshCcw className="w-5 h-5" strokeWidth={2.5} />
+                <span>Réessayer l'analyse</span>
+              </>
+            )}
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={() => router.push("/")}
+            className="mt-4 block w-full text-gray-600 hover:text-gray-900 font-medium text-sm"
+          >
+            Retour à l'accueil
+          </motion.button>
         </div>
       </div>
     );

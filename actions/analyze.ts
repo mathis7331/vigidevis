@@ -2,6 +2,7 @@
 
 import OpenAI from "openai";
 import { AnalysisResult } from "@/lib/types";
+import { parseJSONWithRepair } from "@/lib/json-repair";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -11,7 +12,7 @@ const SYSTEM_PROMPT = `Tu es un Expert en Tarification et Lutte Anti-Fraude avec
 
 MISSION : Analyse ce devis LIGNE PAR LIGNE et compare chaque prix avec le marché actuel.
 
-IMPORTANT : Tu DOIS retourner UNIQUEMENT un objet JSON valide, sans aucun texte avant ou après, sans balises markdown, sans commentaires.
+CRITIQUE : Tu ne dois répondre QUE par un objet JSON pur. Pas de texte avant, pas de texte après. Aucune balise markdown, aucun commentaire, aucune explication. UNIQUEMENT le JSON.
 
 1. Identifie le type de devis (Garage, Plomberie, Dentiste, Électricité, etc.).
 2. Pour CHAQUE ligne du devis (pièce, prestation, main d'œuvre), crée une entrée dans "line_items" avec :
@@ -62,28 +63,90 @@ RÈGLES STRICTES :
 - Pour "negotiation_tip" : écris un MESSAGE COMPLET avec bonjour, contexte, problème, négociation et formule de politesse (prêt à être copié/collé ou envoyé par SMS)`;
 
 /**
- * Nettoie la réponse de l'IA pour extraire le JSON pur
+ * Fonction helper pour appeler OpenAI avec retry logic
  */
-function cleanAIResponse(content: string): string {
-  let cleaned = content.trim();
-  
-  // Supprimer les balises markdown
-  cleaned = cleaned.replace(/```json\n?/gi, '');
-  cleaned = cleaned.replace(/```\n?/g, '');
-  
-  // Supprimer les textes avant le JSON (si l'IA commence par du texte)
-  const jsonStart = cleaned.indexOf('{');
-  if (jsonStart > 0) {
-    cleaned = cleaned.substring(jsonStart);
+async function callOpenAIWithRetry(
+  imageBase64: string,
+  category: string | null | undefined,
+  attempt: number = 1,
+  maxAttempts: number = 2
+): Promise<{ success: boolean; content?: string; error?: string }> {
+  try {
+    console.log(`[ANALYSE STEP ${attempt}/${maxAttempts}] Envoi requête OpenAI...`);
+    
+    const response = await openai.chat.completions.create({
+      model: "gpt-4o",
+      messages: [
+        {
+          role: "system",
+          content: SYSTEM_PROMPT,
+        },
+        {
+          role: "user",
+          content: [
+            {
+              type: "text",
+              text: `Analyse ce devis${category ? ` dans la catégorie ${category}` : ''} et retourne UNIQUEMENT le JSON demandé, sans markdown, sans texte explicatif.${category ? ` L'utilisateur a sélectionné "${category}", donc priorise l'analyse pour ce type de devis.` : ''}`,
+            },
+            {
+              type: "image_url",
+              image_url: {
+                url: imageBase64,
+                detail: "high",
+              },
+            },
+          ],
+        },
+      ],
+      max_tokens: 2000,
+      temperature: 0.3,
+    });
+
+    const content = response.choices[0]?.message?.content;
+    
+    if (!content) {
+      console.error(`[ANALYSE STEP ${attempt}/${maxAttempts}] ❌ Aucune réponse de l'IA`);
+      
+      if (attempt < maxAttempts) {
+        console.log(`[ANALYSE STEP] Nouvelle tentative dans 2 secondes...`);
+        await new Promise(resolve => setTimeout(resolve, 2000));
+        return callOpenAIWithRetry(imageBase64, category, attempt + 1, maxAttempts);
+      }
+      
+      return {
+        success: false,
+        error: "L'IA n'a pas pu générer de réponse après plusieurs tentatives.",
+      };
+    }
+
+    console.log(`[ANALYSE STEP ${attempt}/${maxAttempts}] ✅ Réponse reçue (${content.length} caractères)`);
+    return { success: true, content };
+    
+  } catch (error) {
+    console.error(`[ANALYSE STEP ${attempt}/${maxAttempts}] ❌ Erreur OpenAI:`, error);
+    
+    // Si c'est une erreur réseau/timeout et qu'on peut réessayer
+    const isRetryable = error instanceof Error && (
+      error.message.includes('timeout') ||
+      error.message.includes('network') ||
+      error.message.includes('ECONNRESET') ||
+      error.message.includes('ETIMEDOUT') ||
+      error.message.includes('rate limit') ||
+      error.message.includes('429')
+    );
+    
+    if (isRetryable && attempt < maxAttempts) {
+      const delay = attempt * 2000; // Délai progressif : 2s, 4s
+      console.log(`[ANALYSE STEP] Erreur récupérable, nouvelle tentative dans ${delay}ms...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+      return callOpenAIWithRetry(imageBase64, category, attempt + 1, maxAttempts);
+    }
+    
+    return {
+      success: false,
+      error: error instanceof Error ? error.message : "Erreur inconnue lors de l'appel OpenAI",
+    };
   }
-  
-  // Supprimer les textes après le JSON
-  const jsonEnd = cleaned.lastIndexOf('}');
-  if (jsonEnd > 0 && jsonEnd < cleaned.length - 1) {
-    cleaned = cleaned.substring(0, jsonEnd + 1);
-  }
-  
-  return cleaned;
 }
 
 /**
@@ -164,92 +227,69 @@ export async function analyzeQuote(
   category?: string | null
 ): Promise<{ success: boolean; data?: AnalysisResult; error?: string }> {
   try {
+    // VALIDATION D'ENTRÉE
+    console.log('[ANALYSE STEP] 🚀 Début de l\'analyse IA...');
+    
+    if (!imageBase64 || imageBase64.trim().length === 0) {
+      console.error('[ANALYSE STEP] ❌ Image base64 manquante ou vide');
+      return {
+        success: false,
+        error: "Image manquante. Veuillez réessayer avec un document valide.",
+      };
+    }
+    
     // Vérification de la clé API
     if (!process.env.OPENAI_API_KEY) {
+      console.error('[ANALYSE STEP] ❌ Clé API OpenAI manquante');
       return {
         success: false,
         error: "Configuration manquante. Veuillez contacter le support.",
       };
     }
 
-    console.log('🚀 Début de l\'analyse IA...');
     if (category) {
-      console.log(`📁 Catégorie sélectionnée: ${category}`);
+      console.log(`[ANALYSE STEP] 📁 Catégorie sélectionnée: ${category}`);
     }
+    
+    console.log(`[ANALYSE STEP] 📸 Image base64: ${imageBase64.substring(0, 50)}... (${Math.round(imageBase64.length / 1024)}KB)`);
 
-    const response = await openai.chat.completions.create({
-      model: "gpt-4o",
-      messages: [
-        {
-          role: "system",
-          content: SYSTEM_PROMPT,
-        },
-        {
-          role: "user",
-          content: [
-            {
-              type: "text",
-              text: `Analyse ce devis${category ? ` dans la catégorie ${category}` : ''} et retourne UNIQUEMENT le JSON demandé, sans markdown, sans texte explicatif.${category ? ` L'utilisateur a sélectionné "${category}", donc priorise l'analyse pour ce type de devis.` : ''}`,
-            },
-            {
-              type: "image_url",
-              image_url: {
-                url: imageBase64,
-                detail: "high",
-              },
-            },
-          ],
-        },
-      ],
-      max_tokens: 2000,
-      temperature: 0.3, // Réduit pour plus de cohérence
-    });
-
-    const content = response.choices[0]?.message?.content;
-
-    if (!content) {
-      console.error('❌ Aucune réponse de l\'IA');
+    // APPEL OPENAI AVEC RETRY LOGIC
+    const openAIResult = await callOpenAIWithRetry(imageBase64, category, 1, 2);
+    
+    if (!openAIResult.success || !openAIResult.content) {
+      console.error('[ANALYSE STEP] ❌ Échec après toutes les tentatives');
       return {
         success: false,
-        error: "L'IA n'a pas pu générer de réponse. Veuillez réessayer.",
+        error: openAIResult.error || "L'IA n'a pas pu générer de réponse. Veuillez réessayer.",
       };
     }
 
-    console.log('📥 Réponse brute de l\'IA reçue');
-    console.log('Longueur:', content.length, 'caractères');
+    const content = openAIResult.content;
+    console.log('[ANALYSE STEP] 📥 Réponse brute reçue:', content.length, 'caractères');
 
-    // Nettoyage de la réponse
-    const cleanedContent = cleanAIResponse(content);
-    console.log('🧹 Réponse nettoyée');
-
-    // Tentative de parsing JSON
-    let result: AnalysisResult;
-    try {
-      result = JSON.parse(cleanedContent);
-      console.log('✅ JSON parsé avec succès');
-    } catch (parseError) {
-      console.error('❌ Erreur de parsing JSON');
-      console.error('Réponse brute de l\'IA:');
-      console.error('─'.repeat(80));
-      console.error(content);
-      console.error('─'.repeat(80));
-      console.error('Après nettoyage:');
-      console.error('─'.repeat(80));
-      console.error(cleanedContent);
-      console.error('─'.repeat(80));
-      console.error('Erreur:', parseError);
+    // PARSING JSON AVEC RÉPARATION AUTOMATIQUE
+    console.log('[ANALYSE STEP] 🔧 Parsing JSON avec réparation...');
+    const parseResult = parseJSONWithRepair(content);
+    
+    if (!parseResult.success || !parseResult.data) {
+      console.error('[ANALYSE STEP] ❌ Échec parsing JSON après toutes les tentatives de réparation');
+      console.error('[ANALYSE STEP] Réponse brute (premiers 500 caractères):', content.substring(0, 500));
       
       return {
         success: false,
-        error: "Désolé, l'IA n'a pas pu lire ce format de devis. Assurez-vous que le document est bien lisible et contient un devis clair.",
+        error: "Désolé, l'IA n'a pas pu générer un format de réponse valide. Veuillez réessayer avec un devis plus clair.",
       };
     }
 
-    // Validation de la structure
+    const result = parseResult.data as AnalysisResult;
+    console.log('[ANALYSE STEP] ✅ JSON parsé avec succès');
+
+    // VALIDATION DE LA STRUCTURE
+    console.log('[ANALYSE STEP] 🔍 Validation de la structure...');
     const validation = validateAnalysisResult(result);
     if (!validation.valid) {
-      console.error('❌ Validation échouée:', validation.error);
-      console.error('Données reçues:', JSON.stringify(result, null, 2));
+      console.error('[ANALYSE STEP] ❌ Validation échouée:', validation.error);
+      console.error('[ANALYSE STEP] Données reçues:', JSON.stringify(result, null, 2));
       
       return {
         success: false,
@@ -260,9 +300,10 @@ export async function analyzeQuote(
     // Normalisation du trust_score
     result.trust_score = Math.max(0, Math.min(100, result.trust_score));
 
-    console.log('✅ Analyse terminée avec succès');
-    console.log(`📊 Score de confiance: ${result.trust_score}/100`);
-    console.log(`📝 ${result.line_items.length} ligne(s) analysée(s)`);
+    console.log('[ANALYSE STEP] ✅ Analyse terminée avec succès');
+    console.log(`[ANALYSE STEP] 📊 Score de confiance: ${result.trust_score}/100`);
+    console.log(`[ANALYSE STEP] 📝 ${result.line_items.length} ligne(s) analysée(s)`);
+    console.log(`[ANALYSE STEP] 🏷️ Catégorie: ${result.category}`);
 
     return {
       success: true,
@@ -270,8 +311,9 @@ export async function analyzeQuote(
     };
     
   } catch (error) {
-    console.error('💥 Erreur critique lors de l\'analyse:');
-    console.error(error);
+    console.error('[ANALYSE STEP] 💥 Erreur critique lors de l\'analyse:');
+    console.error('[ANALYSE STEP] Erreur:', error);
+    console.error('[ANALYSE STEP] Stack:', error instanceof Error ? error.stack : 'N/A');
 
     // Erreur spécifique OpenAI
     if (error instanceof Error && error.message.includes('API key')) {

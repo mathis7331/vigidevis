@@ -18,6 +18,7 @@ import { VideoModal } from "@/components/VideoModal";
 import { FAQ } from "@/components/FAQ";
 import { Testimonials } from "@/components/Testimonials";
 import { createPendingAnalysis } from "@/actions/create-pending-analysis";
+import { compressImageIfNeeded } from "@/lib/image-compression";
 import { toast } from "sonner";
 
 const categories = [
@@ -150,7 +151,16 @@ export default function Home() {
       };
 
       reader.onload = async () => {
-        const base64 = reader.result as string;
+        let base64 = reader.result as string;
+        
+        // ÉTAPE 0 : Compression de l'image si nécessaire (avant pré-vérification)
+        try {
+          toast.loading('Optimisation de l\'image...', { id: 'upload' });
+          base64 = await compressImageIfNeeded(file);
+        } catch (compressionError) {
+          console.error('Erreur lors de la compression:', compressionError);
+          // Continuer avec l'image originale si la compression échoue
+        }
         
         // ÉTAPE 1 : Pré-vérification gratuite avec gpt-4o-mini
         toast.loading('Analyse du document en cours...', { id: 'upload' });
@@ -407,6 +417,11 @@ export default function Home() {
               title="Nos témoignages"
             />
 
+            {/* Stats Section - Preuve Sociale */}
+            <div className="mb-16">
+              <StatsSection />
+            </div>
+
             {/* Catégories avec Icônes */}
             <motion.div
               initial={{ opacity: 0, y: 30 }}
@@ -433,11 +448,6 @@ export default function Home() {
                 ))}
               </div>
             </motion.div>
-
-            {/* Stats Section - Preuve Sociale (déplacée plus bas) */}
-            <div className="mb-16">
-              <StatsSection />
-            </div>
 
             {/* Upload Zone */}
             <motion.div

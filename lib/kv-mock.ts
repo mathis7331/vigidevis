@@ -13,6 +13,11 @@ export interface StoredAnalysis {
   createdAt: string;
   category?: string;
   imageUrl?: string;
+  error?: {
+    type: string; // "IA_FAILED", "PARSING_FAILED", etc.
+    message: string;
+    timestamp: string;
+  };
 }
 
 // In-memory storage (will reset on server restart)
@@ -165,6 +170,31 @@ export async function getStats(): Promise<{ analyses: number; savings: number }>
     analyses: globalForStorage.statsAnalyses ?? statsAnalyses,
     savings: globalForStorage.statsSavings ?? statsSavings,
   };
+}
+
+export async function saveAnalysisError(
+  id: string,
+  errorType: string,
+  errorMessage: string,
+  isPaid: boolean = true
+): Promise<void> {
+  const existing = storage.get(id);
+  
+  const analysis: StoredAnalysis = {
+    id,
+    isPaid,
+    createdAt: existing?.createdAt || new Date().toISOString(),
+    category: existing?.category,
+    imageBase64: existing?.imageBase64, // Conserver l'image pour retry
+    error: {
+      type: errorType,
+      message: errorMessage,
+      timestamp: new Date().toISOString(),
+    },
+  };
+  
+  storage.set(id, analysis);
+  console.log(`[MOCK KV] ✅ Saved error for analysis ${id}: ${errorType}`);
 }
 
 
