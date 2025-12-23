@@ -4,16 +4,16 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { Lock, Check, Shield, Zap, TrendingDown, Lightbulb, CreditCard, Trash2, RotateCcw } from "lucide-react";
 import { createCheckoutSession } from "@/actions/create-checkout";
-import { ANALYSIS_PRICE_DISPLAY } from "@/lib/stripe";
 import { toast } from "sonner";
 
 interface PaywallProps {
   analysisId: string;
   previewScore: number;
   previewSavings: number;
+  priceLabel: string; // Prix formaté (ex: "14,90€" ou "24,90€")
 }
 
-export function Paywall({ analysisId, previewScore, previewSavings }: PaywallProps) {
+export function Paywall({ analysisId, previewScore, previewSavings, priceLabel }: PaywallProps) {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleUnlock = async () => {
@@ -161,7 +161,7 @@ export function Paywall({ analysisId, previewScore, previewSavings }: PaywallPro
               <div className="inline-block p-6 rounded-2xl bg-white/10 backdrop-blur-sm border border-white/30">
                 <p className="text-sm text-emerald-100 mb-2">Prix unique</p>
                 <div className="flex items-baseline justify-center gap-2">
-                  <span className="text-5xl font-black">{ANALYSIS_PRICE_DISPLAY}</span>
+                  <span className="text-5xl font-black">{priceLabel}</span>
                 </div>
                 <p className="text-sm text-emerald-100 mt-2">
                   Sans abonnement • Rapport accessible 30 jours
@@ -216,7 +216,7 @@ export function Paywall({ analysisId, previewScore, previewSavings }: PaywallPro
               ) : (
                 <>
                   <CreditCard className="w-6 h-6" strokeWidth={2.5} />
-                  <span>Débloquer pour {ANALYSIS_PRICE_DISPLAY}</span>
+                  <span>Débloquer pour {priceLabel}</span>
                 </>
               )}
             </button>

@@ -1,7 +1,9 @@
 "use server";
 
-import { stripe, ANALYSIS_PRICE } from "@/lib/stripe";
+import { stripe } from "@/lib/stripe";
 import { headers } from "next/headers";
+import { getAnalysis } from "@/lib/kv";
+import { getPricingForCategory } from "@/lib/pricing";
 
 export async function createCheckoutSession(
   analysisId: string
@@ -15,6 +17,21 @@ export async function createCheckoutSession(
   }
 
   try {
+    // Récupérer l'analyse pour obtenir la catégorie
+    const analysis = await getAnalysis(analysisId);
+    
+    if (!analysis) {
+      return {
+        success: false,
+        error: "Analyse introuvable",
+      };
+    }
+
+    // Déterminer le prix en fonction de la catégorie
+    const pricing = getPricingForCategory(analysis.category);
+    
+    console.log(`[Checkout] Création session pour analyse ${analysisId}, catégorie: ${analysis.category || "non définie"}, prix: ${pricing.label}`);
+
     const headersList = await headers();
     const origin = headersList.get("origin") || process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
 
@@ -28,10 +45,10 @@ export async function createCheckoutSession(
             currency: "eur",
             product_data: {
               name: "Analyse VigiDevis Premium",
-              description: "Analyse détaillée ligne par ligne + arguments de négociation",
+              description: `Analyse détaillée ligne par ligne + arguments de négociation${analysis.category ? ` (${analysis.category})` : ""}`,
               images: [`${origin}/og-image.png`],
             },
-            unit_amount: ANALYSIS_PRICE, // 7.99€
+            unit_amount: pricing.amount, // Prix dynamique selon la catégorie
           },
           quantity: 1,
         },
@@ -40,6 +57,8 @@ export async function createCheckoutSession(
       cancel_url: `${origin}/rapport/${analysisId}?payment=cancelled`,
       metadata: {
         analysisId,
+        category: analysis.category || "unknown",
+        price: pricing.amount.toString(),
       },
       customer_creation: "always",
       billing_address_collection: "required",

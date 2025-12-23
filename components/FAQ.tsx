@@ -12,7 +12,7 @@ interface FAQItem {
 const faqData: FAQItem[] = [
   {
     question: "Comment fonctionne le remboursement ?",
-    answer: "Si l'IA détecte que votre devis est déjà au prix juste (score ≥ 90/100), nous vous remboursons intégralement vos 7,99€ sous 48h automatiquement."
+    answer: "Si l'IA détecte que votre devis est déjà au prix juste (score ≥ 90/100), nous vous remboursons intégralement le montant payé sous 48h automatiquement."
   },
   {
     question: "Quels types de devis sont acceptés ?",
@@ -105,4 +105,6 @@ export function FAQ() {
     </section>
   );
 }
+
+
 

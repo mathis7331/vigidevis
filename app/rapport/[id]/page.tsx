@@ -22,6 +22,7 @@ import { CircularScore } from "@/components/CircularScore";
 import { LineItemCard } from "@/components/LineItemCard";
 import { Paywall } from "@/components/Paywall";
 import { StoredAnalysis } from "@/lib/kv";
+import { getPricingForCategory } from "@/lib/pricing";
 import { toast } from "sonner";
 
 export default function RapportPage() {
@@ -240,11 +241,15 @@ export default function RapportPage() {
       ? calculateTotalSavings() 
       : 250; // Économies estimées par défaut
     
+    // Calculer le prix en fonction de la catégorie
+    const pricing = getPricingForCategory(analysis.category);
+    
     return (
       <Paywall 
         analysisId={id}
         previewScore={previewScore}
         previewSavings={Math.round(totalSavings)}
+        priceLabel={pricing.label}
       />
     );
   }

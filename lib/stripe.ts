@@ -21,7 +21,11 @@ export const getStripe = () => {
   return stripePromise;
 };
 
-// Price configuration
-export const ANALYSIS_PRICE = 799; // 7.99€ in cents
-export const ANALYSIS_PRICE_DISPLAY = "7,99€";
+// ⚠️ DEPRECATED: Les prix sont maintenant gérés dynamiquement via lib/pricing.ts
+// Ces constantes sont conservées pour compatibilité mais ne doivent plus être utilisées
+// Utilisez getPricingForCategory() depuis lib/pricing.ts à la place
+/** @deprecated Utilisez getPricingForCategory() depuis lib/pricing.ts */
+export const ANALYSIS_PRICE = 1490; // Prix par défaut (14.90€) en centimes
+/** @deprecated Utilisez getPricingForCategory() depuis lib/pricing.ts */
+export const ANALYSIS_PRICE_DISPLAY = "14,90€";
 

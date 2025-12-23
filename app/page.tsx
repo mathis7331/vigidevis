@@ -359,7 +359,7 @@ export default function Home() {
 
               {/* Prix */}
               <p className="text-xl md:text-2xl text-gray-600 mb-12 max-w-3xl mx-auto font-light">
-                Analyse IA instantanée pour <span className="font-semibold text-emerald-600">7,99€</span>
+                Analyse IA instantanée à partir de <span className="font-semibold text-emerald-600">14,90€</span>
               </p>
 
               {/* Hero CTA Buttons */}
