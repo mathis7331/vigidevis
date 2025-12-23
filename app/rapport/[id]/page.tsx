@@ -168,6 +168,112 @@ function RapportContent() {
     fetchAnalysis();
   }, [id, router, searchParams]);
 
+  // POLLING AUTOMATIQUE : Si payé mais analyse pas encore terminée
+  // ⚠️ IMPORTANT : Ce useEffect DOIT être déclaré AVANT tous les returns conditionnels
+  useEffect(() => {
+    // Ne démarrer le polling que si l'analyse est payée mais pas encore terminée
+    if (!analysis || !analysis.isPaid || analysis.result || analysis.error) {
+      return;
+    }
+
+    // Enregistrer le temps de début si ce n'est pas déjà fait
+    if (analysisStartTime === null) {
+      setAnalysisStartTime(Date.now());
+    }
+
+    const maxPollingAttempts = 60; // 60 tentatives = 3 minutes max (3s * 60)
+    const pollingInterval = 3000; // 3 secondes entre chaque vérification
+    const maxDuration = 3 * 60 * 1000; // 3 minutes maximum
+
+    let attempts = 0;
+    let pollingActive = true;
+
+    const pollAnalysis = async () => {
+      if (!pollingActive) return;
+
+      attempts++;
+      setPollingAttempts(attempts);
+
+      // Vérifier le timeout
+      const elapsed = analysisStartTime ? Date.now() - analysisStartTime : 0;
+      if (elapsed > maxDuration) {
+        console.error(`[POLLING] Timeout after ${elapsed}ms for analysis ${id}`);
+        pollingActive = false;
+        toast.error("L'analyse prend plus de temps que prévu", {
+          description: "Veuillez recharger la page ou contacter le support si le problème persiste.",
+        });
+        return;
+      }
+
+      // Vérifier le nombre de tentatives
+      if (attempts >= maxPollingAttempts) {
+        console.error(`[POLLING] Max attempts reached (${maxPollingAttempts}) for analysis ${id}`);
+        pollingActive = false;
+        toast.error("L'analyse prend plus de temps que prévu", {
+          description: "Veuillez recharger la page ou contacter le support si le problème persiste.",
+        });
+        return;
+      }
+
+      try {
+        console.log(`[POLLING] Attempt ${attempts}/${maxPollingAttempts} for analysis ${id}`);
+        const response = await fetch(`/api/analysis/${id}`);
+        const data = await response.json();
+
+        if (data.success && data.analysis) {
+          setAnalysis(data.analysis);
+
+          // Si l'analyse est terminée (avec résultat ou erreur)
+          if (data.analysis.result) {
+            console.log(`[POLLING] ✅ Analysis ${id} completed with result`);
+            pollingActive = false;
+            toast.success("Analyse terminée !", {
+              description: "Votre rapport est maintenant disponible.",
+            });
+            return;
+          }
+
+          if (data.analysis.error) {
+            console.log(`[POLLING] ❌ Analysis ${id} has error:`, data.analysis.error);
+            pollingActive = false;
+            toast.error("Erreur d'analyse", {
+              description: "L'analyse a échoué. Vous pouvez réessayer avec le bouton ci-dessous.",
+            });
+            return;
+          }
+
+          // Sinon, continuer le polling
+          if (pollingActive && attempts < maxPollingAttempts) {
+            setTimeout(pollAnalysis, pollingInterval);
+          }
+        } else {
+          console.error(`[POLLING] Failed to fetch analysis ${id}:`, data.error);
+          // Continuer quand même le polling en cas d'erreur réseau temporaire
+          if (pollingActive && attempts < maxPollingAttempts) {
+            setTimeout(pollAnalysis, pollingInterval);
+          }
+        }
+      } catch (error) {
+        console.error(`[POLLING] Error polling analysis ${id}:`, error);
+        // Continuer le polling en cas d'erreur
+        if (pollingActive && attempts < maxPollingAttempts) {
+          setTimeout(pollAnalysis, pollingInterval);
+        }
+      }
+    };
+
+    // Démarrer le polling après 2 secondes (donner le temps au webhook)
+    const timeoutId = setTimeout(() => {
+      pollAnalysis();
+    }, 2000);
+
+    // Cleanup
+    return () => {
+      pollingActive = false;
+      clearTimeout(timeoutId);
+    };
+  }, [analysis?.isPaid, analysis?.result, analysis?.error, id, analysisStartTime]);
+
   const calculateTotalSavings = () => {
     if (!analysis || !analysis.result) return 0;
     return analysis.result.line_items.reduce((total, item) => {
@@ -278,111 +384,6 @@ function RapportContent() {
       setIsRetrying(false);
     }
   };
-
-  // POLLING AUTOMATIQUE : Si payé mais analyse pas encore terminée
-  useEffect(() => {
-    // Ne démarrer le polling que si l'analyse est payée mais pas encore terminée
-    if (!analysis || !analysis.isPaid || analysis.result || analysis.error) {
-      return;
-    }
-
-    // Enregistrer le temps de début si ce n'est pas déjà fait
-    if (analysisStartTime === null) {
-      setAnalysisStartTime(Date.now());
-    }
-
-    const maxPollingAttempts = 60; // 60 tentatives = 3 minutes max (3s * 60)
-    const pollingInterval = 3000; // 3 secondes entre chaque vérification
-    const maxDuration = 3 * 60 * 1000; // 3 minutes maximum
-
-    let attempts = 0;
-    let pollingActive = true;
-
-    const pollAnalysis = async () => {
-      if (!pollingActive) return;
-
-      attempts++;
-      setPollingAttempts(attempts);
-
-      // Vérifier le timeout
-      const elapsed = analysisStartTime ? Date.now() - analysisStartTime : 0;
-      if (elapsed > maxDuration) {
-        console.error(`[POLLING] Timeout after ${elapsed}ms for analysis ${id}`);
-        pollingActive = false;
-        toast.error("L'analyse prend plus de temps que prévu", {
-          description: "Veuillez recharger la page ou contacter le support si le problème persiste.",
-        });
-        return;
-      }
-
-      // Vérifier le nombre de tentatives
-      if (attempts >= maxPollingAttempts) {
-        console.error(`[POLLING] Max attempts reached (${maxPollingAttempts}) for analysis ${id}`);
-        pollingActive = false;
-        toast.error("L'analyse prend plus de temps que prévu", {
-          description: "Veuillez recharger la page ou contacter le support si le problème persiste.",
-        });
-        return;
-      }
-
-      try {
-        console.log(`[POLLING] Attempt ${attempts}/${maxPollingAttempts} for analysis ${id}`);
-        const response = await fetch(`/api/analysis/${id}`);
-        const data = await response.json();
-
-        if (data.success && data.analysis) {
-          setAnalysis(data.analysis);
-
-          // Si l'analyse est terminée (avec résultat ou erreur)
-          if (data.analysis.result) {
-            console.log(`[POLLING] ✅ Analysis ${id} completed with result`);
-            pollingActive = false;
-            toast.success("Analyse terminée !", {
-              description: "Votre rapport est maintenant disponible.",
-            });
-            return;
-          }
-
-          if (data.analysis.error) {
-            console.log(`[POLLING] ❌ Analysis ${id} has error:`, data.analysis.error);
-            pollingActive = false;
-            toast.error("Erreur d'analyse", {
-              description: "L'analyse a échoué. Vous pouvez réessayer avec le bouton ci-dessous.",
-            });
-            return;
-          }
-
-          // Sinon, continuer le polling
-          if (pollingActive && attempts < maxPollingAttempts) {
-            setTimeout(pollAnalysis, pollingInterval);
-          }
-        } else {
-          console.error(`[POLLING] Failed to fetch analysis ${id}:`, data.error);
-          // Continuer quand même le polling en cas d'erreur réseau temporaire
-          if (pollingActive && attempts < maxPollingAttempts) {
-            setTimeout(pollAnalysis, pollingInterval);
-          }
-        }
-      } catch (error) {
-        console.error(`[POLLING] Error polling analysis ${id}:`, error);
-        // Continuer le polling en cas d'erreur
-        if (pollingActive && attempts < maxPollingAttempts) {
-          setTimeout(pollAnalysis, pollingInterval);
-        }
-      }
-    };
-
-    // Démarrer le polling après 2 secondes (donner le temps au webhook)
-    const timeoutId = setTimeout(() => {
-      pollAnalysis();
-    }, 2000);
-
-    // Cleanup
-    return () => {
-      pollingActive = false;
-      clearTimeout(timeoutId);
-    };
-  }, [analysis?.isPaid, analysis?.result, analysis?.error, id, analysisStartTime]);
 
   // Si payé mais analyse pas encore terminée (webhook en cours) ET pas d'erreur
   if (analysis.isPaid && !analysis.result && !analysis.error) {
