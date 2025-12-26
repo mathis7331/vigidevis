@@ -605,7 +605,7 @@ function RapportContent() {
                 animate={{ scale: 1, opacity: 1 }}
                 transition={{ delay: 0.3, type: "spring" }}
               >
-                <div className="flex items-baseline gap-2 mb-3">
+                <div className="flex items-baseline justify-center md:justify-start gap-2 mb-3">
                   <span className="text-6xl md:text-7xl font-black text-red-600">
                     {totalSavings.toFixed(0)}€
                   </span>
