@@ -65,6 +65,9 @@ export async function createCheckoutSession(
       locale: "fr",
     });
 
+    console.log(`[Checkout] Session créée: ${session.id}`);
+    console.log(`[Checkout] ⚠️ IMPORTANT: Le checkout utilise price_data (produit dynamique). Si un code promo est refusé, vérifiez dans Stripe Dashboard que le code promo n'a PAS de restriction de Product ID ou Price ID.`);
+
     return {
       success: true,
       sessionUrl: session.url || undefined,
