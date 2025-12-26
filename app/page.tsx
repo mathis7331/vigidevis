@@ -336,8 +336,8 @@ export default function Home() {
               >
                 <div className="bg-gradient-to-br from-emerald-50 to-teal-50 rounded-2xl p-6 border-2 border-emerald-200 shadow-sm">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                    <div className="flex items-start gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <div className="flex flex-col md:flex-row items-center md:items-start gap-3 text-center md:text-left">
+                      <div className="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center flex-shrink-0 md:mt-0.5">
                         <Lock className="w-4 h-4 text-white" strokeWidth={2.5} />
                       </div>
                       <div>
@@ -345,8 +345,8 @@ export default function Home() {
                         <p className="text-gray-600 text-xs">Aucune donnée transmise au prestataire</p>
                       </div>
                     </div>
-                    <div className="flex items-start gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <div className="flex flex-col md:flex-row items-center md:items-start gap-3 text-center md:text-left">
+                      <div className="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center flex-shrink-0 md:mt-0.5">
                         <Trash2 className="w-4 h-4 text-white" strokeWidth={2.5} />
                       </div>
                       <div>
@@ -354,8 +354,8 @@ export default function Home() {
                         <p className="text-gray-600 text-xs">Devis supprimé après analyse</p>
                       </div>
                     </div>
-                    <div className="flex items-start gap-3">
-                      <div className="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <div className="flex flex-col md:flex-row items-center md:items-start gap-3 text-center md:text-left">
+                      <div className="w-8 h-8 rounded-lg bg-emerald-500 flex items-center justify-center flex-shrink-0 md:mt-0.5">
                         <RotateCcw className="w-4 h-4 text-white" strokeWidth={2.5} />
                       </div>
                       <div>
