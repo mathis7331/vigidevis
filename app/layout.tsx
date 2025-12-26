@@ -8,13 +8,14 @@ import "./globals.css";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
-  title: "VigiDevis - Vérificateur de Devis Intelligent",
-  description: "L'IA analyse vos devis ligne par ligne en 3 secondes. 185 000€ d'économies détectées ce mois-ci.",
+  title: "VigiDevis | Analyse de devis travaux par IA : Économisez gros !",
+  description: "Ne payez plus vos travaux trop cher. VigiDevis analyse vos devis en 1 minute grâce à l'IA. Recevez un rapport détaillé et négociez comme un pro.",
   openGraph: {
-    title: "VigiDevis - Ne payez plus jamais trop cher",
-    description: "L'IA analyse vos devis ligne par ligne. 185 000€ d'économies détectées.",
+    title: "VigiDevis | Analyse de devis travaux par IA : Économisez gros !",
+    description: "Ne payez plus vos travaux trop cher. VigiDevis analyse vos devis en 1 minute grâce à l'IA. Recevez un rapport détaillé et négociez comme un pro.",
     type: 'website',
   },
+  // La favicon est automatiquement détectée depuis app/icon.svg par Next.js
 };
 
 export default function RootLayout({
