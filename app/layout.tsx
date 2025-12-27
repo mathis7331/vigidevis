@@ -16,7 +16,15 @@ export const metadata: Metadata = {
     description: "Ne payez plus vos travaux trop cher. VigiDevis analyse vos devis en 1 minute grâce à l'IA. Recevez un rapport détaillé et négociez comme un pro.",
     type: 'website',
   },
-  // La favicon est automatiquement détectée depuis app/icon.svg par Next.js
+  icons: {
+    icon: [
+      { url: '/favicon.png', type: 'image/png', sizes: '32x32' },
+    ],
+    apple: [
+      { url: '/favicon.png', sizes: '180x180', type: 'image/png' },
+    ],
+    shortcut: '/favicon.png',
+  },
 };
 
 export default function RootLayout({
