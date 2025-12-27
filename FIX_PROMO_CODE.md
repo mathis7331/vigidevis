@@ -86,3 +86,4 @@ Si après avoir supprimé les restrictions le code ne fonctionne toujours pas :
 
 **Note** : J'ai ajouté un log dans `actions/create-checkout.ts` pour faciliter le diagnostic des problèmes de codes promo à l'avenir.
 
+

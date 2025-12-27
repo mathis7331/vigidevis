@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import { Suspense } from "react";
+import Script from "next/script";
 import { Toaster } from "sonner";
 import ClarityInitializer from "@/components/ClarityInitializer";
 import "./globals.css";
@@ -26,6 +27,19 @@ export default function RootLayout({
   return (
     <html lang="fr">
       <body className={inter.className}>
+        {/* Google tag (gtag.js) */}
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=AW-17813601165"
+          strategy="afterInteractive"
+        />
+        <Script id="google-ads-init" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'AW-17813601165');
+          `}
+        </Script>
         <ClarityInitializer />
         <Suspense fallback={null}>
           {children}
