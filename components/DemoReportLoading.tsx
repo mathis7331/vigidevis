@@ -9,9 +9,9 @@ interface DemoReportLoadingProps {
 }
 
 const loadingMessages = [
-  { icon: Search, message: "Lecture du devis...", duration: 800 },
-  { icon: TrendingUp, message: "Comparaison avec Oscaro...", duration: 800 },
-  { icon: Calculator, message: "Calcul du score...", duration: 800 },
+  { icon: Search, message: "Analyse de la photo...", duration: 800 },
+  { icon: TrendingUp, message: "Recherche des prix Vinted...", duration: 800 },
+  { icon: Calculator, message: "Génération de l'annonce...", duration: 800 },
 ];
 
 export function DemoReportLoading({ onComplete }: DemoReportLoadingProps) {

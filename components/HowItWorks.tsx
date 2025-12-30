@@ -6,18 +6,18 @@ import { Upload, ScanSearch, CheckCircle2 } from "lucide-react";
 const steps = [
   {
     icon: Upload,
-    title: "Uploadez votre devis",
-    description: "Prenez en photo ou uploadez votre devis en quelques secondes",
+    title: "Prends une photo",
+    description: "Photographie ton vêtement avec ton téléphone en quelques secondes",
   },
   {
     icon: ScanSearch,
-    title: "L'IA analyse ligne par ligne",
-    description: "Notre intelligence artificielle compare chaque prix avec le marché",
+    title: "L'IA analyse le style et la marque",
+    description: "Notre intelligence artificielle identifie la marque, l'époque et estime la valeur",
   },
   {
     icon: CheckCircle2,
-    title: "Décidez en toute confiance",
-    description: "Recevez un verdict détaillé et des conseils de négociation",
+    title: "Copie-colle ton annonce sur Vinted",
+    description: "Reçois une description optimisée, des hashtags tendance et le prix parfait",
   },
 ];
 
@@ -31,11 +31,11 @@ export function HowItWorks() {
           viewport={{ once: true }}
           className="text-center mb-16"
         >
-          <h2 className="text-4xl md:text-5xl font-bold mb-4 text-gray-900">
+          <h2 className="text-4xl md:text-5xl font-bold mb-4 text-text">
             Comment ça marche ?
           </h2>
           <p className="text-xl text-gray-600">
-            Une analyse complète en 3 étapes simples
+            Vends tes sapes en 3 clics, c'est tout
           </p>
         </motion.div>
 
@@ -53,12 +53,12 @@ export function HowItWorks() {
               >
                 <div className="relative mb-6">
                   {/* Number Badge */}
-                  <div className="absolute -top-3 -left-3 w-10 h-10 rounded-xl bg-emerald-500 text-white font-bold flex items-center justify-center text-lg shadow-lg">
+                  <div className="absolute -top-3 -left-3 w-10 h-10 rounded-xl bg-primary text-white font-bold flex items-center justify-center text-lg shadow-lg">
                     {index + 1}
                   </div>
                   
                   {/* Icon Container */}
-                  <div className="inline-flex items-center justify-center w-24 h-24 rounded-3xl bg-gradient-to-br from-emerald-500 to-emerald-600 shadow-2xl shadow-emerald-500/30 group-hover:scale-110 transition-transform">
+                  <div className="inline-flex items-center justify-center w-24 h-24 rounded-3xl bg-gradient-to-br from-primary to-primary/80 shadow-2xl shadow-primary/30 group-hover:scale-110 transition-transform">
                     <Icon className="w-12 h-12 text-white" strokeWidth={2} />
                   </div>
                 </div>
@@ -93,7 +93,7 @@ export function HowItWorks() {
               <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
                 <ScanSearch className="w-6 h-6 text-blue-600" strokeWidth={2.5} />
               </div>
-              <span className="font-semibold text-gray-900">Analyse en 3 secondes</span>
+              <span className="font-semibold text-gray-900">Résultat en 30 secondes</span>
             </div>
             <div className="flex items-center gap-3">
               <div className="w-10 h-10 rounded-xl bg-purple-100 flex items-center justify-center">

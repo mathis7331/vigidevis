@@ -11,16 +11,16 @@ interface FAQItem {
 
 const faqData: FAQItem[] = [
   {
-    question: "Comment fonctionne le remboursement ?",
-    answer: "Si l'IA détecte que votre devis est déjà au prix juste (score ≥ 90/100), nous vous remboursons intégralement le montant payé sous 48h automatiquement."
+    question: "Est-ce que ça marche pour les chaussures ?",
+    answer: "Oui ! L'IA analyse tous types de vêtements et accessoires : chaussures, sacs, vêtements, bijoux... Elle identifie la marque, l'état et estime la valeur marchande pour optimiser ta vente."
   },
   {
-    question: "Quels types de devis sont acceptés ?",
-    answer: "Nous analysons actuellement les devis de mécanique automobile, travaux de rénovation, santé et technologie. D'autres catégories arrivent bientôt !"
+    question: "Comment l'IA connaît le prix ?",
+    answer: "Notre IA est entraînée sur des milliers d'annonces Vinted réussies. Elle analyse la marque, l'époque, l'état et les tendances actuelles pour te proposer le prix optimal qui maximise tes chances de vente rapide."
   },
   {
-    question: "Mes données sont-elles en sécurité ?",
-    answer: "Oui, nous utilisons un chiffrement de niveau bancaire et aucun document n'est stocké sans votre accord. Vos données personnelles sont automatiquement anonymisées par notre IA."
+    question: "Est-ce que c'est lié à mon compte Vinted ?",
+    answer: "Non, VINTED-TURBO est totalement indépendant de Vinted. On génère juste l'annonce optimisée que tu copies-colles toi-même. Aucune connexion à ton compte, 100% privé et sécurisé."
   }
 ];
 

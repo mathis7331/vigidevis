@@ -9,10 +9,10 @@ interface DemoLoadingScreenProps {
 }
 
 const loadingMessages = [
-  "Lecture du devis...",
-  "Analyse des matériaux...",
-  "Comparaison avec Oscaro et Amazon...",
-  "Calcul des économies potentielles...",
+  "Analyse de la photo...",
+  "Identification de la marque...",
+  "Recherche des prix similaires sur Vinted...",
+  "Génération de l'annonce optimisée...",
 ];
 
 export function DemoLoadingScreen({ onComplete }: DemoLoadingScreenProps) {

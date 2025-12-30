@@ -129,7 +129,7 @@ function RapportContent() {
                   if (data.analysis.isPaid && !data.analysis.result) {
                     toast.loading("Analyse en cours...", { 
                       id: "payment-check",
-                      description: `Votre devis est en train d'être analysé par l'IA (${attempts}/${maxAttempts})` 
+                      description: `Ton vêtement est en train d'être analysé par l'IA (${attempts}/${maxAttempts})` 
                     });
                     return false; // Continuer à vérifier
                   }
@@ -322,7 +322,7 @@ function RapportContent() {
   const shareAnalysis = async (platform: "whatsapp" | "twitter" | "email", savings: number = 0) => {
     const url = `${window.location.origin}/rapport/${id}`;
     const savingsAmount = savings > 0 ? savings : (analysis?.result ? getItemValue() : 0);
-    const text = `J'ai économisé ${savingsAmount.toFixed(0)}€ sur mon devis grâce à VigiDevis ! 💰`;
+    const text = `J'ai vendu mon vêtement ${savingsAmount.toFixed(0)}€ grâce à VINTED-TURBO ! 🔥`;
 
     switch (platform) {
       case "whatsapp":
@@ -332,11 +332,11 @@ function RapportContent() {
         window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}`, "_blank");
         break;
       case "email":
-        window.location.href = `mailto:?subject=${encodeURIComponent("Regarde cette analyse VigiDevis")}&body=${encodeURIComponent(`${text}\n\nVoir le rapport complet : ${url}`)}`;
+        window.location.href = `mailto:?subject=${encodeURIComponent("Regarde cette annonce VINTED-TURBO")}&body=${encodeURIComponent(`${text}\n\nVoir le rapport complet : ${url}`)}`;
         break;
     }
 
-    toast.success("Partagé !", { description: "Merci de faire connaître VigiDevis" });
+    toast.success("Partagé !", { description: "Merci de faire connaître VINTED-TURBO" });
   };
 
   const copyToClipboardDemo = (text: string) => {
@@ -692,7 +692,7 @@ function RapportContent() {
           
           <h2 className="text-2xl font-bold text-gray-900 mb-3">Analyse en cours...</h2>
           <p className="text-gray-600 mb-2">
-            Votre devis est en train d'être analysé par l'IA
+            Ton vêtement est en train d'être analysé par l'IA
           </p>
           <p className="text-sm text-gray-500 mb-6">
             Cela peut prendre entre 10 et 30 secondes
@@ -751,7 +751,7 @@ function RapportContent() {
           </div>
           <h2 className="text-2xl font-bold text-gray-900 mb-3">Erreur d'analyse</h2>
           <p className="text-gray-600 mb-2">
-            L'analyse de votre devis a échoué.
+            L'analyse de ton vêtement a échoué.
           </p>
           <p className="text-sm text-gray-500 mb-8">
             Type d'erreur : {analysis.error.type}

@@ -228,7 +228,7 @@ export default function Home() {
             const saveResult = await createPendingAnalysis(base64Data, selectedCategory || undefined);
             
             if (saveResult.success && saveResult.id) {
-              toast.success('Devis prêt !', { id: 'upload' });
+              toast.success('Photo prête !', { id: 'upload' });
               setShowProgress(false);
               setIsAnalyzing(false);
               router.push(`/rapport/${saveResult.id}`);
@@ -479,7 +479,7 @@ export default function Home() {
                     <Trash2 className="w-6 h-6 text-white" strokeWidth={2.5} />
                   </div>
                   <p className="font-bold text-gray-900 mb-1">Suppression auto</p>
-                  <p className="text-sm text-gray-600">Devis supprimé après analyse</p>
+                  <p className="text-sm text-gray-600">Photo supprimée après analyse</p>
                 </div>
 
                 {/* Bloc 3 */}

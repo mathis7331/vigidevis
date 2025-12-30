@@ -54,13 +54,13 @@ export function UploadZone({ onFileSelect, disabled }: UploadZoneProps) {
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
       onClick={handleClick}
-      className={cn(
+        className={cn(
         "relative border-3 border-dashed rounded-3xl p-12 transition-all cursor-pointer",
         "flex flex-col items-center justify-center gap-4",
         "min-h-[300px] md:min-h-[400px]",
         isDragging
-          ? "border-blue-500 bg-blue-50 scale-105 shadow-2xl shadow-blue-500/30"
-          : "border-gray-300 bg-white hover:border-blue-400 hover:bg-blue-50/30 hover:shadow-xl",
+          ? "border-primary bg-primary/10 scale-105 shadow-2xl shadow-primary/30"
+          : "border-gray-300 bg-white hover:border-primary hover:bg-primary/5 hover:shadow-xl",
         disabled && "opacity-50 cursor-not-allowed"
       )}
     >
@@ -69,7 +69,7 @@ export function UploadZone({ onFileSelect, disabled }: UploadZoneProps) {
         <motion.div
           initial={{ opacity: 0 }}
           whileHover={{ opacity: 1 }}
-          className="absolute inset-0 rounded-3xl bg-gradient-to-r from-blue-500/20 to-indigo-500/20 blur-xl"
+          className="absolute inset-0 rounded-3xl bg-gradient-to-r from-primary/20 to-accent/20 blur-xl"
         />
       )}
 
@@ -101,7 +101,7 @@ export function UploadZone({ onFileSelect, disabled }: UploadZoneProps) {
           y: { duration: 0.6, repeat: isDragging ? Infinity : 0 },
           rotate: { duration: 0.4 },
         }}
-        className="relative flex items-center justify-center w-24 h-24 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-600 shadow-2xl shadow-blue-500/40"
+        className="relative flex items-center justify-center w-24 h-24 rounded-2xl bg-gradient-to-br from-primary to-primary/80 shadow-2xl shadow-primary/40"
       >
         {/* Pulse Ring */}
         <motion.div
@@ -114,7 +114,7 @@ export function UploadZone({ onFileSelect, disabled }: UploadZoneProps) {
             repeat: Infinity,
             ease: "easeOut",
           }}
-          className="absolute inset-0 rounded-2xl border-4 border-blue-500"
+          className="absolute inset-0 rounded-2xl border-4 border-primary"
         />
 
         {isDragging ? (
@@ -128,12 +128,12 @@ export function UploadZone({ onFileSelect, disabled }: UploadZoneProps) {
       <div className="text-center relative z-10">
         <motion.h3
           animate={isDragging ? { scale: 1.05 } : {}}
-          className="text-2xl font-bold text-gray-900 mb-2"
+          className="text-2xl font-bold text-text mb-2"
         >
-          {isDragging ? "Déposez votre devis ici !" : "Glissez votre devis ici"}
+          {isDragging ? "Dépose ta photo ici ! 📸" : "📸 Glisse la photo de ton vêtement ici"}
         </motion.h3>
         <p className="text-gray-600 text-lg">
-          ou <span className="text-blue-600 font-bold">cliquez pour parcourir</span>
+          ou <span className="text-primary font-bold">clique pour parcourir</span>
         </p>
         <motion.p
           initial={{ opacity: 0 }}
@@ -141,8 +141,8 @@ export function UploadZone({ onFileSelect, disabled }: UploadZoneProps) {
           transition={{ delay: 0.2 }}
           className="text-sm text-gray-400 mt-3 flex items-center justify-center gap-2"
         >
-          <span>PNG, JPG, JPEG jusqu'à 10MB</span>
-          <span className="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          <span>JPG, PNG (Max 10MB)</span>
+          <span className="inline-block w-2 h-2 rounded-full bg-primary animate-pulse" />
         </motion.p>
       </div>
     </motion.div>

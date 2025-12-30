@@ -14,9 +14,9 @@ const stats = [
   {
     icon: DollarSign,
     number: "26 700 €",
-    label: "Économies totales détectées",
-    color: "text-emerald-600",
-    bgColor: "bg-emerald-50",
+    label: "Gains totaux générés",
+    color: "text-primary",
+    bgColor: "bg-primary/10",
   },
   {
     icon: Star,

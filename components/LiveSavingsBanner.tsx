@@ -1,15 +1,15 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Stethoscope, Home, Car, Zap, Wrench, TrendingDown } from "lucide-react";
+import { Shirt, ShoppingBag, Heart, Zap, Sparkles, TrendingDown } from "lucide-react";
 
 const savings = [
-  { text: "Julie a économisé 230€ sur un devis Dentiste", icon: Stethoscope, color: "text-blue-400" },
-  { text: "Marc a évité une arnaque de 450€ sur sa Pompe à chaleur", icon: Home, color: "text-orange-400" },
-  { text: "Sophie a réduit sa facture garage de 30%", icon: Car, color: "text-purple-400" },
-  { text: "Thomas a économisé 180€ sur un devis Électricien", icon: Zap, color: "text-yellow-400" },
-  { text: "Marie a détecté 320€ de surfacturation Plomberie", icon: Wrench, color: "text-red-400" },
-  { text: "Marie a vendu son vintage 3x plus cher grâce à VINTED-TURBO", icon: TrendingDown, color: "text-primary" },
+  { text: "Sarah a vendu son sac Zara en 1h grâce à l'IA", icon: ShoppingBag, color: "text-primary" },
+  { text: "Thomas a vendu ses Jordan 50€ plus cher que prévu", icon: Zap, color: "text-accent" },
+  { text: "Léa a vidé son dressing pour 200€ en une semaine", icon: Shirt, color: "text-primary" },
+  { text: "Alex a découvert que sa veste valait 80€ au lieu de 30€", icon: Heart, color: "text-accent" },
+  { text: "Emma a vendu 15 articles vintage en 48h", icon: Sparkles, color: "text-primary" },
+  { text: "Lucas a boosté ses ventes de 300% avec les hashtags IA", icon: TrendingDown, color: "text-accent" },
 ];
 
 export function LiveSavingsBanner() {

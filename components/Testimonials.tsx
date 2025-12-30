@@ -12,22 +12,22 @@ interface Testimonial {
 
 const testimonials: Testimonial[] = [
   {
-    name: "Marc",
-    savings: 120,
-    category: "freins",
-    avatar: "M"
-  },
-  {
-    name: "Sophie",
-    savings: 85,
-    category: "plomberie",
+    name: "Sarah",
+    savings: 45,
+    category: "vêtements",
     avatar: "S"
   },
   {
     name: "Thomas",
-    savings: 200,
-    category: "électricité",
+    savings: 80,
+    category: "sneakers",
     avatar: "T"
+  },
+  {
+    name: "Léa",
+    savings: 200,
+    category: "dressing",
+    avatar: "L"
   }
 ];
 
@@ -74,9 +74,9 @@ export function Testimonials() {
 
               {/* Testimonial Text */}
               <p className="text-gray-700 mb-6 leading-relaxed">
-                <span className="font-semibold text-gray-900">{testimonial.name}</span> a économisé{" "}
-                <span className="font-bold text-emerald-600">{testimonial.savings}€</span> sur ses{" "}
-                {testimonial.category}.
+                <span className="font-semibold text-gray-900">{testimonial.name}</span> a vendu{" "}
+                <span className="font-bold text-primary">{testimonial.savings}€</span> de{" "}
+                {testimonial.category} grâce aux descriptions optimisées.
               </p>
 
               {/* Avatar */}

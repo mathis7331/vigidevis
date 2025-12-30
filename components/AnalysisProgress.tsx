@@ -7,32 +7,32 @@ import { Zap, TrendingUp, Search, Calculator, CheckCircle } from "lucide-react";
 const analysisSteps = [
   {
     icon: Search,
-    message: "Extraction des données du devis...",
+    message: "Analyse de la photo de ton vêtement...",
     duration: 1200, // 1.2 secondes
   },
   {
     icon: TrendingUp,
-    message: "Analyse des prix des matériaux (cuivre, acier, béton)...",
-    duration: 1500, // 1.5 secondes (plus long car message plus long)
+    message: "Identification de la marque et du style...",
+    duration: 1500, // 1.5 secondes
   },
   {
     icon: Search,
-    message: "Comparaison avec 50 fournisseurs locaux...",
+    message: "Recherche des prix similaires sur Vinted...",
     duration: 1300, // 1.3 secondes
   },
   {
     icon: Calculator,
-    message: "Calcul des marges standards du marché...",
+    message: "Génération de la description optimisée...",
     duration: 1200, // 1.2 secondes
   },
   {
     icon: Zap,
-    message: "Détection de frais cachés et surfacturations...",
+    message: "Création des hashtags tendance...",
     duration: 1400, // 1.4 secondes
   },
   {
     icon: CheckCircle,
-    message: "Finalisation du verdict...",
+    message: "Finalisation de ton annonce parfaite...",
     duration: 1000, // 1 seconde
   },
 ];

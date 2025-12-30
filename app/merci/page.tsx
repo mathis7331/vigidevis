@@ -78,7 +78,7 @@ function SuccessContent() {
             Paiement réussi ! <span className="inline-block animate-bounce">🎉</span>
           </h1>
           <p className="text-lg text-slate-600 mb-8 leading-relaxed">
-            Merci pour votre confiance. Votre devis est en cours d'analyse par notre <span className="text-emerald-600 font-semibold italic">IA haute performance</span>.
+            Merci pour ta confiance ! Ton vêtement est en cours d'analyse par notre <span className="text-primary font-semibold italic">IA spécialisée mode</span>.
           </p>
         </motion.div>
 

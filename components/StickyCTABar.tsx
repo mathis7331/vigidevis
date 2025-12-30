@@ -41,10 +41,10 @@ export function StickyCTABar({ onScanClick }: StickyCTABarProps) {
               <motion.button
                 whileTap={{ scale: 0.95 }}
                 onClick={onScanClick}
-                className="flex-1 flex items-center justify-center gap-3 px-6 py-4 rounded-2xl bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold text-lg shadow-lg shadow-blue-500/50"
+                className="flex-1 flex items-center justify-center gap-3 px-6 py-4 rounded-2xl bg-gradient-to-r from-primary to-primary/80 text-white font-bold text-lg shadow-lg shadow-primary/50"
               >
                 <Scan className="w-6 h-6" strokeWidth={2.5} />
-                <span>Scanner mon devis</span>
+                <span>Analyser un vêtement</span>
               </motion.button>
 
               {/* Scroll to Top Button */}
