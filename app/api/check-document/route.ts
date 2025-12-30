@@ -62,14 +62,14 @@ export async function POST(req: NextRequest) {
       messages: [
         {
           role: "system",
-          content: "Tu es un expert en administration. Analyse les documents avec une précision maximale.",
+          content: "Tu es un expert en mode et vêtements. Analyse les photos avec une précision maximale.",
         },
         {
           role: "user",
           content: [
             {
               type: "text",
-              text: "Tu es un expert en administration. Analyse cette image. Pour être VALID, le document DOIT impérativement contenir : un montant total en euros, une liste d'articles ou de travaux, et ressembler à une facture ou un devis formel. Si c'est une photo d'objet, de paysage, de personne ou un texte incohérent, réponds INVALID. Réponds UNIQUEMENT par VALID ou INVALID.",
+              text: "Tu es un expert en mode et vêtements. Analyse cette image. Pour être VALID, l'image DOIT impérativement montrer un vêtement, un accessoire de mode, des chaussures, ou un article de mode (sweat, t-shirt, pantalon, sac, etc.). Si c'est une photo de paysage, de personne (sans vêtement visible), de texte/document, ou autre chose qu'un article de mode, réponds INVALID. Réponds UNIQUEMENT par VALID ou INVALID.",
             },
             {
               type: "image_url",

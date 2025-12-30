@@ -14,6 +14,7 @@ import { StickyCTABar } from "@/components/StickyCTABar";
 import { StatsSection } from "@/components/StatsSection";
 import { HeroButton } from "@/components/HeroButton";
 import { HeroPreview } from "@/components/HeroPreview";
+import { Hero } from "@/components/Hero";
 import { VideoSection } from "@/components/VideoSection";
 import { VideoModal } from "@/components/VideoModal";
 import { FAQ } from "@/components/FAQ";
@@ -128,9 +129,12 @@ export default function Home() {
   };
 
   const handleFileSelect = async (file: File) => {
+    console.log('[UPLOAD] Fichier sélectionné:', file.name, file.type, file.size);
+    
     // Validation
     const validation = validateFile(file);
     if (!validation.valid) {
+      console.error('[UPLOAD] Validation échouée:', validation.error);
       toast.error('Fichier invalide', { 
         description: validation.error,
         duration: 4000,
@@ -140,7 +144,9 @@ export default function Home() {
 
     try {
       setIsAnalyzing(true);
+      setShowProgress(false); // S'assurer que le progress n'est pas déjà affiché
       toast.loading('Préparation du fichier...', { id: 'upload' });
+      console.log('[UPLOAD] Début du traitement...');
 
       // Convert file to base64
       const reader = new FileReader();
@@ -154,23 +160,26 @@ export default function Home() {
 
       reader.onload = async () => {
         let base64 = reader.result as string;
+        console.log('[UPLOAD] Fichier converti en base64, taille:', base64.length);
         
         // ÉTAPE 0 : Compression de l'image si nécessaire (avant pré-vérification)
         try {
           toast.loading('Optimisation de l\'image...', { id: 'upload' });
           base64 = await compressImageIfNeeded(file);
+          console.log('[UPLOAD] Image compressée, nouvelle taille:', base64.length);
         } catch (compressionError) {
-          console.error('Erreur lors de la compression:', compressionError);
+          console.error('[UPLOAD] Erreur lors de la compression:', compressionError);
           // Continuer avec l'image originale si la compression échoue
         }
         
         // ÉTAPE 1 : Pré-vérification gratuite avec gpt-4o-mini
-        toast.loading('Analyse du document en cours...', { id: 'upload' });
+        toast.loading('Vérification de la photo...', { id: 'upload' });
         
         try {
           // Extraire le base64 pur (sans le préfixe data:image/...)
           const base64Data = base64.includes(',') ? base64.split(',')[1] : base64;
           
+          console.log('[UPLOAD] Envoi de la vérification à l\'API...');
           const checkResponse = await fetch('/api/check-document', {
             method: 'POST',
             headers: {
@@ -179,16 +188,23 @@ export default function Home() {
             body: JSON.stringify({ imageBase64: base64Data }),
           });
 
+          if (!checkResponse.ok) {
+            console.error('[UPLOAD] Erreur HTTP:', checkResponse.status, checkResponse.statusText);
+            throw new Error(`Erreur HTTP: ${checkResponse.status}`);
+          }
+
           const checkData = await checkResponse.json();
+          console.log('[UPLOAD] Réponse de vérification:', checkData);
 
           // Vérifier que la réponse est exactement VALID
           if (!checkData.success || !checkData.valid || checkData.result !== "VALID") {
-            // Document non reconnu comme vêtement valide
-            toast.error('Photo non reconnue comme un vêtement', {
+            // Photo non reconnue comme vêtement valide
+            toast.error('Photo non reconnue', {
               id: 'upload',
-              description: "Veuillez uploader une vraie photo de vêtement pour continuer."
+              description: "Assure-toi que la photo montre bien un vêtement, un accessoire ou des chaussures."
             });
             setIsAnalyzing(false);
+            setShowProgress(false);
             return;
           }
 
@@ -198,8 +214,10 @@ export default function Home() {
 
           // Wait 2 seconds for progress animation (simulation)
           setTimeout(async () => {
+            console.log('[UPLOAD] Sauvegarde de l\'analyse...');
             // Save image to KV store WITHOUT analysis (saves OpenAI credits!)
             const saveResult = await createPendingAnalysis(base64Data, selectedCategory || undefined);
+            console.log('[UPLOAD] Résultat de sauvegarde:', saveResult);
 
             if (saveResult.success && saveResult.id) {
               toast.success('Vêtement prêt !', { id: 'upload' });
@@ -207,8 +225,10 @@ export default function Home() {
               setIsAnalyzing(false);
 
               // Redirect to rapport page (will show paywall)
+              console.log('[UPLOAD] Redirection vers /rapport/' + saveResult.id);
               router.push(`/rapport/${saveResult.id}`);
             } else {
+              console.error('[UPLOAD] Erreur de sauvegarde:', saveResult.error);
               setShowProgress(false);
               setIsAnalyzing(false);
               toast.error('Erreur', {
@@ -218,7 +238,7 @@ export default function Home() {
             }
           }, 2000);
         } catch (checkError) {
-          console.error('Error checking document:', checkError);
+          console.error('[UPLOAD] Erreur lors de la vérification:', checkError);
           // En cas d'erreur de vérification, on continue quand même (pour ne pas bloquer)
           toast.loading('Préparation de ton vêtement...', { id: 'upload' });
           setShowProgress(true);
@@ -244,19 +264,22 @@ export default function Home() {
         }
       };
 
-      reader.onerror = () => {
+      reader.onerror = (error) => {
+        console.error('[UPLOAD] Erreur de lecture du fichier:', error);
         toast.error('Erreur de lecture', { 
           id: 'upload',
           description: "Impossible de lire le fichier" 
         });
         setIsAnalyzing(false);
+        setShowProgress(false);
       };
 
       reader.readAsDataURL(file);
     } catch (error) {
-      console.error(error);
+      console.error('[UPLOAD] Erreur générale:', error);
       toast.error('Erreur', {
-        description: "Une erreur inattendue est survenue"
+        id: 'upload',
+        description: error instanceof Error ? error.message : "Une erreur inattendue est survenue"
       });
       setIsAnalyzing(false);
       setShowProgress(false);
@@ -267,190 +290,13 @@ export default function Home() {
     <>
       {showProgress && <AnalysisProgress />}
 
-      {/* Live Savings Banner */}
-      <LiveSavingsBanner />
+      {/* Hero Section Premium Style Awwwards */}
+      <Hero 
+        onUploadClick={scrollToUpload}
+        onExampleClick={() => router.push("/demo")}
+      />
 
       <main className="min-h-screen bg-white">
-        {/* Header - VINTED-TURBO */}
-        <header className="py-5 px-6 border-b border-gray-100 bg-white sticky top-0 z-40 backdrop-blur-sm bg-white/90">
-          <div className="max-w-7xl mx-auto flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-primary to-primary/80 flex items-center justify-center shadow-lg shadow-primary/20">
-                <Camera className="w-6 h-6 text-white" strokeWidth={2.5} />
-              </div>
-              <div>
-                <h1 className="text-2xl md:text-3xl font-bold text-text tracking-tight">
-                  VINTED-TURBO
-                </h1>
-              </div>
-            </div>
-            <motion.a
-              href="#faq"
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              className="hidden sm:flex items-center gap-2 px-4 py-2 rounded-xl text-gray-600 hover:text-emerald-600 font-medium text-sm transition-colors"
-            >
-              <HelpCircle className="w-4 h-4" strokeWidth={2.5} />
-              <span>Comment ça marche</span>
-            </motion.a>
-          </div>
-        </header>
-
-        {/* Hero Section - Approche Conversion Agressive */}
-        <section className="py-12 md:py-20 px-6 bg-gradient-to-b from-white to-gray-50">
-          <div className="max-w-7xl mx-auto">
-            {/* Mobile: Structure verticale simple */}
-            <div className="block sm:hidden space-y-8">
-              {/* Section 1: Texte (Haut) */}
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.6 }}
-                className="text-center"
-              >
-                {/* Badge */}
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 font-medium mb-4 text-sm">
-                  <Sparkles className="w-4 h-4" strokeWidth={2.5} />
-                  <span>Intelligence Artificielle</span>
-                </div>
-
-                {/* Headline H1 - Percutant */}
-                <h1 className="text-3xl font-black mb-4 text-text leading-tight tracking-tight">
-                  Vends tes sapes en{" "}
-                  <span className="bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent">
-                    2 clics
-                  </span>
-                  📸
-                  <br />
-                  <span className="text-gray-800">L'IA analyse ton vêtement et crée l'annonce Vinted parfaite.</span>
-                </h1>
-
-                {/* Sous-titre avec stat */}
-                <motion.p
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                  className="text-base text-gray-700 mb-6 font-medium leading-relaxed"
-                >
-                  Arrête de galérer avec tes descriptions.{" "}
-                  <span className="font-bold text-primary">L'IA rédige tout pour toi et te dit combien ça vaut vraiment.</span>
-                </motion.p>
-
-                {/* CTA Button Principal - Élégant */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
-                  className="mb-4"
-                >
-                  <HeroButton onClick={scrollToUpload} />
-                </motion.div>
-
-                {/* Bouton Voir un exemple */}
-                <motion.button
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.35 }}
-                  onClick={() => router.push("/demo")}
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white border-2 border-gray-300 text-gray-700 font-semibold hover:border-primary hover:text-primary transition-all shadow-sm"
-                >
-                  <Eye className="w-5 h-5" strokeWidth={2.5} />
-                  <span>Voir un exemple</span>
-                </motion.button>
-              </motion.div>
-            </div>
-
-            {/* Desktop: Grid 2 colonnes classique */}
-            <div className="hidden sm:grid sm:grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-              {/* Colonne gauche : Contenu textuel */}
-              <motion.div
-                initial={{ opacity: 0, x: -30 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.6 }}
-                className="text-left lg:text-left"
-              >
-                {/* Badge */}
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 font-medium mb-6 text-sm">
-                  <Sparkles className="w-4 h-4" strokeWidth={2.5} />
-                  <span>Intelligence Artificielle</span>
-                </div>
-
-                {/* Headline H1 - Agressive */}
-                <h1 className="text-4xl md:text-5xl lg:text-6xl font-black mb-6 text-text leading-tight tracking-tight">
-                  Vends tes sapes en{" "}
-                  <span className="bg-gradient-to-r from-primary via-primary to-accent bg-clip-text text-transparent">
-                    2 clics
-                  </span>
-                  📸
-                  <br />
-                  <span className="text-gray-800">L'IA analyse ton vêtement et crée l'annonce Vinted parfaite.</span>
-                </h1>
-
-                {/* Sous-titre avec stat */}
-                <motion.p
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.2 }}
-                  className="text-lg md:text-xl text-gray-700 mb-8 font-medium leading-relaxed"
-                >
-                  Arrête de galérer avec tes descriptions.{" "}
-                  <span className="font-bold text-primary">L'IA rédige tout pour toi et te dit combien ça vaut vraiment.</span>
-                </motion.p>
-
-                {/* CTA Button - Élégant */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.3 }}
-                  className="mb-4"
-                >
-                  <HeroButton onClick={scrollToUpload} />
-                </motion.div>
-
-                {/* Bouton Voir un exemple */}
-                <motion.button
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.35 }}
-                  onClick={() => router.push("/demo")}
-                  className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-white border-2 border-gray-300 text-gray-700 font-semibold hover:border-primary hover:text-primary transition-all shadow-sm mb-6"
-                >
-                  <Eye className="w-5 h-5" strokeWidth={2.5} />
-                  <span>Voir un exemple</span>
-                </motion.button>
-
-                {/* Réassurance rapide */}
-                <motion.div
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  transition={{ delay: 0.4 }}
-                  className="flex flex-wrap items-center gap-4 text-sm text-gray-600"
-                >
-                  <div className="flex items-center gap-2">
-                    <Lock className="w-4 h-4 text-primary" strokeWidth={2} />
-                    <span>100% Confidentiel</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Zap className="w-4 h-4 text-primary" strokeWidth={2} />
-                    <span>Résultat en 30s</span>
-                  </div>
-                </motion.div>
-              </motion.div>
-
-              {/* Colonne droite : Prévisualisation ou Rapport de démonstration */}
-              {/* Colonne droite : HeroPreview par défaut, ou rien si le demo loading est affiché */}
-              <motion.div
-                initial={{ opacity: 0, x: 30 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.6, delay: 0.2 }}
-                className="flex justify-center lg:justify-end"
-              >
-                <HeroPreview />
-              </motion.div>
-
-            </div>
-          </div>
-        </section>
 
         {/* Section Contenu Principal */}
         <section className="py-16 px-6">
@@ -534,7 +380,7 @@ export default function Home() {
 
             {/* Upload Zone */}
             <motion.div
-              id="upload-section"
+              id="upload"
               ref={uploadRef}
               initial={{ opacity: 0, scale: 0.95 }}
               animate={{ opacity: 1, scale: 1 }}
