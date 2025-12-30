@@ -9,11 +9,12 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        'primary': '#09B1BA', // Vinted Teal
-        'secondary': '#F3F4F6', // Light Gray
-        'accent': '#FF0055', // Heart Pink
-        'text': '#111827', // Dark Gray
-        'background': '#FFFFFF', // Pure White
+        'primary': '#2DD4BF', // Cyber-Thrift Teal (Future-Tech)
+        'secondary': '#020617', // Deep Space Background
+        'accent': '#A855F7', // Purple Energy
+        'text': '#FFFFFF', // Pure White Text
+        'surface': 'rgba(255, 255, 255, 0.05)', // Glass Surface
+        'glow': 'rgba(45, 212, 191, 0.2)', // Primary Glow
       },
       backgroundImage: {
         'gradient-radial': 'radial-gradient(var(--tw-gradient-stops))',
