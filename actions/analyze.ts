@@ -355,13 +355,10 @@ export async function analyzeQuote(
       };
     }
 
-    // Normalisation du trust_score
-    result.trust_score = Math.max(0, Math.min(100, result.trust_score));
-
     console.log('[ANALYSE STEP] ✅ Analyse terminée avec succès');
-    console.log(`[ANALYSE STEP] 📊 Score de confiance: ${result.trust_score}/100`);
-    console.log(`[ANALYSE STEP] 📝 ${result.line_items.length} ligne(s) analysée(s)`);
-    console.log(`[ANALYSE STEP] 🏷️ Catégorie: ${result.category}`);
+    console.log(`[ANALYSE STEP] 👕 Vêtement analysé: ${result.item_analysis.brand} ${result.item_analysis.type}`);
+    console.log(`[ANALYSE STEP] 📊 État estimé: ${result.item_analysis.condition_score}/10`);
+    console.log(`[ANALYSE STEP] 💰 Prix recommandé: ${result.pricing.market_price}€`);
 
     return {
       success: true,

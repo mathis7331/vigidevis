@@ -310,38 +310,18 @@ function RapportContent() {
     };
   }, [analysis?.isPaid, analysis?.result, analysis?.error, id, analysisStartTime]);
 
-  const calculateTotalSavings = () => {
+  // Pour les vêtements, on retourne simplement le prix du marché comme "valeur"
+  const getItemValue = () => {
     if (!analysis || !analysis.result) return 0;
-    return analysis.result.line_items.reduce((total, item) => {
-      const quotedNum = parseFloat(item.quoted_price.replace(/[^\d.,]/g, "").replace(",", "."));
-      const marketNum = parseFloat(item.market_price.replace(/[^\d.,]/g, "").replace(",", "."));
-      
-      if (isNaN(quotedNum) || isNaN(marketNum)) return total;
-      
-      const savings = quotedNum - marketNum;
-      return total + (savings > 0 ? savings : 0);
-    }, 0);
+    return analysis.result.pricing.market_price;
   };
 
-  const copyToClipboard = async () => {
-    if (!analysis || !analysis.result) return;
-    
-    const result = analysis.result!; // Non-null assertion après vérification
-    try {
-      await navigator.clipboard.writeText(result.negotiation_tip);
-      setCopied(true);
-      toast.success("Message copié !", { 
-        description: "Prêt à être envoyé par SMS ou email" 
-      });
-      setTimeout(() => setCopied(false), 3000);
-    } catch (error) {
-      toast.error("Erreur", { description: "Impossible de copier" });
-    }
-  };
+  // Fonction de copie supprimée car remplacée par la nouvelle logique copy-paste
+  // La copie se fait maintenant directement dans le composant copy-paste avec tous les éléments
 
   const shareAnalysis = async (platform: "whatsapp" | "twitter" | "email", savings: number = 0) => {
     const url = `${window.location.origin}/rapport/${id}`;
-    const savingsAmount = savings > 0 ? savings : (analysis?.result ? calculateTotalSavings() : 0);
+    const savingsAmount = savings > 0 ? savings : (analysis?.result ? getItemValue() : 0);
     const text = `J'ai économisé ${savingsAmount.toFixed(0)}€ sur mon devis grâce à VigiDevis ! 💰`;
 
     switch (platform) {
@@ -813,9 +793,9 @@ function RapportContent() {
   // Show paywall if not paid
   if (showPaywall && !analysis.isPaid) {
     // Si l'analyse n'est pas encore faite, utiliser des valeurs mock pour l'aperçu
-    const previewScore = analysis.result?.trust_score ?? 75; // Score estimé par défaut
+    const previewScore = analysis.result?.item_analysis.condition_score ?? 8; // État estimé par défaut
     const totalSavings = analysis.result 
-      ? calculateTotalSavings() 
+      ? getItemValue() 
       : 250; // Économies estimées par défaut
     
     // Calculer le prix en fonction de la catégorie
@@ -846,7 +826,7 @@ function RapportContent() {
 
   // TypeScript sait maintenant que result existe (non-null assertion après vérification)
   const result = analysis.result!;
-  const totalSavings = calculateTotalSavings();
+  const totalSavings = getItemValue();
 
   return renderReport(result, totalSavings, id, false);
 }

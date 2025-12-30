@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Copy, Check, MessageSquare, Share2, Car, TrendingDown, AlertTriangle } from "lucide-react";
+import { Copy, Check, MessageSquare, Share2, Car, TrendingDown, AlertTriangle, Sparkles } from "lucide-react";
 import { CircularScore } from "@/components/CircularScore";
 import { LineItemCard } from "@/components/LineItemCard";
 import { AnalysisResult } from "@/lib/types";
@@ -13,84 +13,53 @@ interface DemoReportProps {
   onRedirect?: () => void;
 }
 
-// Données de démonstration pour Mécanique Auto
+// Données de démonstration pour vêtement Vinted
 const demoAnalysis: AnalysisResult = {
-  category: "Mécanique Auto",
-  trust_score: 65,
-  verdict: "Votre garagiste surfacture plusieurs pièces. Les plaquettes de frein sont vendues 3x le prix du marché. Vous pouvez économiser jusqu'à 175€ en négociant.",
-  red_flags: [
-    "Plaquettes de frein avant : 3x le prix Oscaro",
-    "Main d'œuvre excessive sur certaines prestations"
-  ],
-  fair_price_estimate: "240€ - 280€",
-  negotiation_tip: `Bonjour,
-
-J'ai bien reçu votre devis pour la réparation de ma voiture. En comparant avec les prix du marché (Oscaro, Amazon, garages partenaires), j'ai remarqué que certaines pièces sont facturées bien au-dessus des tarifs habituels.
-
-Par exemple, les plaquettes de frein avant sont proposées à 180€ alors qu'elles sont disponibles à 60€ sur Oscaro pour la même référence.
-
-Je souhaiterais discuter avec vous pour ajuster ces prix et trouver un terrain d'entente qui soit équitable pour nous deux.
-
-Cordialement`,
-  line_items: [
-    {
-      item_name: "Plaquettes de frein avant",
-      quoted_price: "180€",
-      market_price: "60€",
-      status: "danger",
-      comment: "3x le prix Oscaro/Amazon"
-    },
-    {
-      item_name: "Main d'œuvre (2h)",
-      quoted_price: "120€",
-      market_price: "80€",
-      status: "warning",
-      comment: "Tarif horaire supérieur à la moyenne"
-    },
-    {
-      item_name: "Liquide de frein",
-      quoted_price: "25€",
-      market_price: "15€",
-      status: "warning",
-      comment: "Prix légèrement élevé"
-    },
-    {
-      item_name: "Diagnostic électronique",
-      quoted_price: "45€",
-      market_price: "40€",
-      status: "ok",
-      comment: "Prix conforme au marché"
-    }
-  ]
+  item_analysis: {
+    brand: "Nike",
+    type: "Sweatshirt",
+    color: "Gris",
+    condition_score: 8,
+    estimated_era: "Y2K"
+  },
+  sales_copy: {
+    seo_title: "Sweat Nike Vintage Gris - Oversize - Y2K",
+    description: `• État : Excellent état, porté quelques fois (8/10) ✨
+• Taille : L (convient M-XL, coupe oversize)
+• Marque : Nike vintage authentique
+• Couleur : Gris chiné avec logo swoosh blanc
+• Style Tip : Le porter avec un jean baggy pour un look 2000s parfait ! 💯`,
+    hashtags: ["#vintage", "#nike", "#y2k", "#streetwear", "#90s", "#mode", "#fashion", "#vêtements", "#secondemain", "#vinted", "#retro", "#oversize", "#sweat", "#gris", "#swoosh"]
+  },
+  pricing: {
+    fast_sell_price: 15,
+    market_price: 25,
+    pro_negotiation_price: 35
+  }
 };
 
 export function DemoReport({ onConvert, onRedirect }: DemoReportProps) {
   const [copied, setCopied] = useState(false);
 
   const handleCopy = () => {
-    navigator.clipboard.writeText(demoAnalysis.negotiation_tip);
+    const fullContent = `${demoAnalysis.sales_copy.seo_title}\n\n${demoAnalysis.sales_copy.description}\n\n${demoAnalysis.sales_copy.hashtags.join(' ')}`;
+    navigator.clipboard.writeText(fullContent);
     setCopied(true);
-    toast.success("Message copié !", { description: "Vous pouvez maintenant le coller dans votre SMS ou email." });
+    toast.success("Annonce copiée !", { description: "Prête à coller dans Vinted." });
     setTimeout(() => setCopied(false), 2000);
   };
 
   const handleSMS = () => {
-    const smsText = `sms:?body=${encodeURIComponent(demoAnalysis.negotiation_tip)}`;
+    const smsText = `sms:?body=${encodeURIComponent("Regarde cette annonce Vinted générée par IA !")}`;
     window.location.href = smsText;
   };
 
-  const calculateTotalSavings = () => {
-    return demoAnalysis.line_items.reduce((total, item) => {
-      const quoted = parseFloat(item.quoted_price.replace(/[^\d.,]/g, "").replace(",", "."));
-      const market = parseFloat(item.market_price.replace(/[^\d.,]/g, "").replace(",", "."));
-      if (!isNaN(quoted) && !isNaN(market) && quoted > market) {
-        return total + (quoted - market);
-      }
-      return total;
-    }, 0);
+  // Pour les vêtements, on retourne simplement la valeur marchande
+  const getItemValue = () => {
+    return demoAnalysis.pricing.market_price;
   };
 
-  const totalSavings = calculateTotalSavings();
+  const totalSavings = getItemValue();
 
   return (
     <div className="w-full max-w-4xl mx-auto space-y-6 px-4 py-6">
@@ -107,7 +76,7 @@ export function DemoReport({ onConvert, onRedirect }: DemoReportProps) {
         <h1 className="text-3xl font-black text-gray-900 mb-2">
           Analyse de votre devis
         </h1>
-        <p className="text-gray-600">{demoAnalysis.category}</p>
+        <p className="text-gray-600">{demoAnalysis.item_analysis.type}</p>
       </motion.div>
 
       {/* Score Card */}
@@ -118,77 +87,105 @@ export function DemoReport({ onConvert, onRedirect }: DemoReportProps) {
         className="bg-white rounded-3xl shadow-xl p-8 border-2 border-gray-100"
       >
         <div className="flex flex-col items-center">
-          <CircularScore score={demoAnalysis.trust_score} />
-          
-          {/* Badge et économie */}
+          {/* État du vêtement */}
+          <div className="text-center mb-4">
+            <div className="text-2xl font-bold text-text mb-2">
+              {demoAnalysis.item_analysis.brand} {demoAnalysis.item_analysis.type}
+            </div>
+            <div className="text-lg text-gray-600">
+              État: {demoAnalysis.item_analysis.condition_score}/10
+            </div>
+          </div>
+
+          {/* Valeur marchande */}
           <div className="mt-6 space-y-3 w-full max-w-md">
             <div className="flex justify-center">
               <motion.div
                 animate={{ scale: [1, 1.05, 1] }}
                 transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                className="px-6 py-3 rounded-full font-black text-base bg-gradient-to-r from-yellow-400 via-orange-400 to-yellow-500 text-gray-900 shadow-xl border-2 border-orange-300"
+                className="px-6 py-3 rounded-full font-black text-base bg-gradient-to-r from-primary via-primary to-accent text-white shadow-xl"
               >
-                ⚠️ À NÉGOCIER
+                💰 VALEUR MARCHANDE
               </motion.div>
             </div>
-            
+
             <div className="text-center">
               <p className="text-sm text-gray-600 font-medium mb-1">
-                Économie potentielle :
+                Prix recommandé :
               </p>
               <motion.p
                 animate={{ scale: [1, 1.05, 1] }}
                 transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-                className="text-4xl font-black text-red-600 drop-shadow-lg"
+                className="text-4xl font-black text-primary drop-shadow-lg"
               >
-                {totalSavings}€
+                {getItemValue()}€
               </motion.p>
             </div>
           </div>
         </div>
       </motion.div>
 
-      {/* Verdict */}
+      {/* Description générée */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
-        className="bg-gradient-to-br from-orange-50 to-red-50 rounded-2xl p-6 border-2 border-orange-200"
+        className="bg-white rounded-2xl p-6 border-2 border-primary/20 shadow-lg"
       >
         <div className="flex items-start gap-3">
-          <AlertTriangle className="w-6 h-6 text-orange-600 flex-shrink-0 mt-0.5" strokeWidth={2.5} />
+          <Sparkles className="w-6 h-6 text-primary flex-shrink-0 mt-0.5" strokeWidth={2.5} />
           <div>
-            <h3 className="font-bold text-lg text-gray-900 mb-2">Verdict</h3>
-            <p className="text-gray-700 leading-relaxed">{demoAnalysis.verdict}</p>
+            <h3 className="font-bold text-lg text-text mb-2">Description optimisée</h3>
+            <p className="text-gray-700 leading-relaxed whitespace-pre-line">{demoAnalysis.sales_copy.description}</p>
           </div>
         </div>
       </motion.div>
 
-      {/* Estimation globale */}
+      {/* Hashtags */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.3 }}
-        className="bg-white rounded-2xl p-6 border-2 border-emerald-200 shadow-lg"
+        className="bg-gradient-to-br from-secondary to-secondary/80 rounded-2xl p-6 border-2 border-secondary/30"
       >
         <div className="flex items-center gap-3 mb-3">
-          <TrendingDown className="w-6 h-6 text-emerald-600" strokeWidth={2.5} />
-          <h3 className="font-bold text-lg text-gray-900">Prix Juste Estimé</h3>
+          <TrendingDown className="w-6 h-6 text-text" strokeWidth={2.5} />
+          <h3 className="font-bold text-lg text-text">Hashtags optimisés</h3>
         </div>
-        <p className="text-2xl font-black text-emerald-600">{demoAnalysis.fair_price_estimate}</p>
+        <div className="flex flex-wrap gap-2">
+          {demoAnalysis.sales_copy.hashtags.slice(0, 10).map((hashtag, index) => (
+            <span key={index} className="bg-primary/10 text-primary px-2 py-1 rounded-full text-sm">
+              {hashtag}
+            </span>
+          ))}
+        </div>
       </motion.div>
 
-      {/* Détails par ligne */}
+      {/* Stratégies de prix */}
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.4 }}
-        className="space-y-4"
+        className="bg-white rounded-2xl p-6 border-2 border-accent/20 shadow-lg"
       >
-        <h2 className="text-2xl font-bold text-gray-900 mb-4">Détails par ligne</h2>
-        {demoAnalysis.line_items.map((item, index) => (
-          <LineItemCard key={index} item={item} index={index} />
-        ))}
+        <h2 className="text-2xl font-bold text-text mb-4">💰 Stratégies de prix</h2>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="text-center p-4 bg-red-50 rounded-xl border border-red-200">
+            <div className="text-sm text-red-600 font-semibold mb-1">VENTE RAPIDE</div>
+            <div className="text-2xl font-black text-red-600">{demoAnalysis.pricing.fast_sell_price}€</div>
+            <div className="text-xs text-red-500 mt-1">24h max</div>
+          </div>
+          <div className="text-center p-4 bg-primary/10 rounded-xl border border-primary/30">
+            <div className="text-sm text-primary font-semibold mb-1">PRIX MARCHÉ</div>
+            <div className="text-2xl font-black text-primary">{demoAnalysis.pricing.market_price}€</div>
+            <div className="text-xs text-primary/70 mt-1">Équitable</div>
+          </div>
+          <div className="text-center p-4 bg-accent/10 rounded-xl border border-accent/30">
+            <div className="text-sm text-accent font-semibold mb-1">NÉGOCIATION</div>
+            <div className="text-2xl font-black text-accent">{demoAnalysis.pricing.pro_negotiation_price}€</div>
+            <div className="text-xs text-accent/70 mt-1">À discuter</div>
+          </div>
+        </div>
       </motion.div>
 
       {/* Message de négociation */}
@@ -200,12 +197,12 @@ export function DemoReport({ onConvert, onRedirect }: DemoReportProps) {
       >
         <div className="flex items-center gap-3 mb-4">
           <MessageSquare className="w-6 h-6 text-blue-600" strokeWidth={2.5} />
-          <h3 className="font-bold text-xl text-gray-900">Votre Message de Négociation</h3>
+          <h3 className="font-bold text-xl text-gray-900">Astuces Vinted</h3>
         </div>
-        
+
         <div className="bg-white rounded-xl p-4 border border-gray-200 mb-4">
-          <p className="text-gray-700 whitespace-pre-line leading-relaxed text-sm">
-            {demoAnalysis.negotiation_tip}
+          <p className="text-gray-700 leading-relaxed text-sm">
+            💡 <strong>Conseil :</strong> Utilisez toujours le prix de vente rapide (15€) pour écouler votre article en 24h maximum !
           </p>
         </div>
 

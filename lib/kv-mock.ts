@@ -43,48 +43,29 @@ const DEMO_ANALYSIS: StoredAnalysis = {
   id: "DEMO12345",
   isPaid: true, // Demo is always unlocked
   createdAt: new Date().toISOString(),
-  category: "Mécanique Auto",
+  category: "Vêtements",
   result: {
-    category: "Mécanique Auto",
-    trust_score: 65,
-    verdict: "Votre garagiste surfacture significativement les pièces détachées. Les plaquettes de frein sont facturées 3 fois leur prix marché, et la main d'œuvre est excessive pour ce type d'intervention simple.",
-    red_flags: [
-      "Plaquettes de frein 3x plus chères qu'Oscaro (180€ vs 60€)",
-      "Main d'œuvre excessive : 120€ pour 30 minutes de travail",
-      "Aucun devis détaillé des pièces d'origine",
-    ],
-    fair_price_estimate: "240€ - 280€",
-    negotiation_tip: "Bonjour,\n\nJ'ai bien reçu votre devis pour le changement de plaquettes de frein. Après avoir comparé avec les prix du marché actuel, j'ai remarqué que les plaquettes sont facturées 180€ alors qu'elles coûtent environ 60€ chez Oscaro pour la même référence.\n\nDe plus, la main d'œuvre de 120€ me semble élevée pour une intervention qui prend environ 30 minutes selon les standards du secteur.\n\nSeriez-vous disposé à revoir ces montants pour nous rapprocher des prix moyens du marché ? Je reste à votre disposition pour en discuter.\n\nCordialement",
-    line_items: [
-      {
-        item_name: "Plaquettes de frein avant (jeu complet)",
-        quoted_price: "180€",
-        market_price: "60€",
-        status: "danger",
-        comment: "Prix 3x supérieur au tarif Oscaro pour la même référence"
-      },
-      {
-        item_name: "Main d'œuvre changement plaquettes",
-        quoted_price: "120€",
-        market_price: "80€",
-        status: "warning",
-        comment: "Tarif horaire élevé pour une intervention standard de 30 minutes"
-      },
-      {
-        item_name: "Liquide de frein (appoint)",
-        quoted_price: "25€",
-        market_price: "15€",
-        status: "warning",
-        comment: "Légèrement au-dessus du prix moyen"
-      },
-      {
-        item_name: "Diagnostic électronique",
-        quoted_price: "45€",
-        market_price: "40€",
-        status: "ok",
-        comment: "Prix conforme aux standards du secteur"
-      }
-    ]
+    item_analysis: {
+      brand: "Nike",
+      type: "Sweatshirt",
+      color: "Gris",
+      condition_score: 8,
+      estimated_era: "Y2K"
+    },
+    sales_copy: {
+      seo_title: "Sweat Nike Vintage Gris - Oversize - Y2K",
+      description: `• État : Excellent état, porté quelques fois (8/10) ✨
+• Taille : L (convient M-XL, coupe oversize)
+• Marque : Nike vintage authentique
+• Couleur : Gris chiné avec logo swoosh blanc
+• Style Tip : Le porter avec un jean baggy pour un look 2000s parfait ! 💯`,
+      hashtags: ["#vintage", "#nike", "#y2k", "#streetwear", "#90s", "#mode", "#fashion", "#vêtements", "#secondemain", "#vinted", "#retro", "#oversize", "#sweat", "#gris", "#swoosh"]
+    },
+    pricing: {
+      fast_sell_price: 15,
+      market_price: 25,
+      pro_negotiation_price: 35
+    }
   }
 };
 

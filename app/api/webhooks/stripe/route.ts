@@ -142,49 +142,12 @@ export async function POST(req: NextRequest) {
             const analysis = await getAnalysis(analysisId);
             
             if (analysis && analysis.result) {
-              // GARANTIE REMBOURSÉ : Si score ≥ 90/100
-              if (analysis.result.trust_score >= 90) {
-                console.log(`🎉 Score ${analysis.result.trust_score}/100 ≥ 90 → Remboursement automatique`);
-                
-                // Vérifier que stripe est configuré avant de faire le remboursement
-                if (stripe && session.payment_intent) {
-                  try {
-                    await stripe.refunds.create({
-                      payment_intent: session.payment_intent as string,
-                      reason: "requested_by_customer",
-                      metadata: {
-                        analysisId,
-                        reason: "Garantie remboursé - Devis déjà au prix juste",
-                        trust_score: analysis.result.trust_score.toString()
-                      }
-                    });
-                    
-                    console.log(`✅ Remboursement effectué pour l'analyse ${analysisId}`);
-                  } catch (refundError) {
-                    console.error("Erreur lors du remboursement:", refundError);
-                  }
-                } else {
-                  console.warn(`⚠️ Cannot process refund for ${analysisId}: Stripe not configured or no payment_intent`);
-                }
-              }
+              // Pour les vêtements, pas de logique de remboursement automatique
+              // Le paiement est définitif une fois l'analyse générée
 
-              // Calculate total savings
-              const totalSavings = analysis.result.line_items.reduce((total, item) => {
-                const quotedNum = parseFloat(
-                  item.quoted_price.replace(/[^\d.,]/g, "").replace(",", ".")
-                );
-                const marketNum = parseFloat(
-                  item.market_price.replace(/[^\d.,]/g, "").replace(",", ".")
-                );
-
-                if (isNaN(quotedNum) || isNaN(marketNum)) return total;
-
-                const savings = quotedNum - marketNum;
-                return total + (savings > 0 ? savings : 0);
-              }, 0);
-
-              // Increment total savings counter
-              await incrementStats("savings", Math.round(totalSavings));
+              console.log(`✅ Analyse de vêtement terminée pour ${analysisId}`);
+              console.log(`👕 Vêtement analysé: ${analysis.result.item_analysis.brand} ${analysis.result.item_analysis.type}`);
+              console.log(`💰 Prix recommandé: ${analysis.result.pricing.market_price}€`);
             }
 
             // Increment analysis counter

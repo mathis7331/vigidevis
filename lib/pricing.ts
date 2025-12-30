@@ -14,21 +14,21 @@ export interface PricingInfo {
  * Mapping des catégories vers les prix
  */
 export const PRICING_MAP: Record<Category, PricingInfo> = {
-  Auto: {
-    amount: 1490, // 14,90€
-    label: "14,90€",
+  Vêtements: {
+    amount: 199, // 1,99€
+    label: "1,99€",
+  },
+  Accessoires: {
+    amount: 199, // 1,99€
+    label: "1,99€",
   },
   Vintage: {
-    amount: 2490, // 24,90€
-    label: "24,90€",
+    amount: 199, // 1,99€
+    label: "1,99€",
   },
-  Santé: {
-    amount: 2490, // 24,90€
-    label: "24,90€",
-  },
-  Tech: {
-    amount: 1490, // 14,90€
-    label: "14,90€",
+  Mode: {
+    amount: 199, // 1,99€
+    label: "1,99€",
   },
 };
 
@@ -36,8 +36,8 @@ export const PRICING_MAP: Record<Category, PricingInfo> = {
  * Prix par défaut si la catégorie n'est pas trouvée
  */
 export const DEFAULT_PRICING: PricingInfo = {
-  amount: 1490, // 14,90€ par défaut
-  label: "14,90€",
+  amount: 199, // 1,99€ par défaut
+  label: "1,99€",
 };
 
 /**
