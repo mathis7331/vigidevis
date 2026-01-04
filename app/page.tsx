@@ -1,50 +1,21 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
-import { Shirt, Sparkles, ShoppingBag, Heart, Camera, TrendingDown, Eye, Play, Lock, HelpCircle, CheckCircle2, Zap, RotateCcw, Trash2, Shield, ChevronDown, Menu, X, ArrowRight, Star, ScanLine, Timer, DollarSign } from "lucide-react";
+import { motion } from "framer-motion";
+import { Menu, X, ArrowRight } from "lucide-react";
 import { UploadZone } from "@/components/UploadZone";
 import { AnalysisProgress } from "@/components/AnalysisProgress";
 import { createPendingAnalysis } from "@/actions/create-pending-analysis";
 import { compressImageIfNeeded } from "@/lib/image-compression";
 import { toast } from "sonner";
-import { clsx } from "clsx";
-import { twMerge } from "tailwind-merge";
-import { Canvas } from '@react-three/fiber';
-import { OrbitControls, Stars, Sphere } from '@react-three/drei';
-import { GalaxyScene } from '@/components/GalaxyScene';
-
-// Utility function for merging classes
-function cn(...inputs: any[]) {
-  return twMerge(clsx(inputs));
-}
-
-// Components for the Bento Grid
-function BentoCard({ children, className, ...props }: any) {
-  return (
-    <motion.div
-      className={cn(
-        "relative overflow-hidden rounded-3xl border border-white/10 bg-surface backdrop-blur-md",
-        "hover:border-primary/30 hover:bg-surface/80 transition-all duration-300",
-        "hover:shadow-2xl hover:shadow-primary/10",
-        className
-      )}
-      whileHover={{ y: -4 }}
-      {...props}
-    >
-      <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-accent/5 opacity-0 hover:opacity-100 transition-opacity duration-300" />
-      {children}
-    </motion.div>
-  );
-}
+import { CinematicPortalScene } from "@/components/CinematicPortalScene";
 
 export default function Home() {
   const router = useRouter();
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [showProgress, setShowProgress] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
-
 
   const handleFileSelect = async (file: File) => {
     if (!file.type.startsWith('image/')) {
@@ -58,66 +29,78 @@ export default function Home() {
 
     try {
       setIsAnalyzing(true);
-      setShowProgress(false);
-      toast.loading('Preparation de ton vetement...', { id: 'upload' });
+      setShowProgress(true);
 
-      const reader = new FileReader();
-      reader.onload = async () => {
-        let base64 = reader.result as string;
+      // Check document first (with original file)
+      const formData = new FormData();
+      formData.append('file', file);
 
-        try {
-          base64 = await compressImageIfNeeded(file);
-        } catch (compressionError) {
-          console.error('Compression error:', compressionError);
-        }
+      const checkResponse = await fetch('/api/check-document', {
+        method: 'POST',
+        body: formData,
+      });
 
-        const base64Data = base64.includes(',') ? base64.split(',')[1] : base64;
+      if (!checkResponse.ok) {
+        throw new Error('Document validation failed');
+      }
 
-        try {
-          const checkResponse = await fetch('/api/check-document', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ imageBase64: base64Data }),
-          });
+      const checkData = await checkResponse.json();
 
-          const checkData = await checkResponse.json();
+      if (checkData.valid !== true) {
+        throw new Error('Invalid document type');
+      }
 
-          if (!checkData.success || !checkData.valid) {
-            toast.error('Photo non reconnue', {
-              id: 'upload',
-              description: "Assure-toi que la photo montre bien un vetement."
-            });
-            setIsAnalyzing(false);
-            return;
-          }
+      // Compress and convert to base64
+      const base64String = await compressImageIfNeeded(file);
+      const imageBase64 = base64String.includes(',') ? base64String.split(',')[1] : base64String;
 
-          toast.loading('Sauvegarde en cours...', { id: 'upload' });
-          const saveResult = await createPendingAnalysis(base64Data);
+      // Create pending analysis
+      const pendingAnalysis = await createPendingAnalysis(imageBase64);
+      if (!pendingAnalysis.success || !pendingAnalysis.id) {
+        throw new Error('Failed to create pending analysis');
+      }
 
-          if (saveResult.success && saveResult.id) {
-            toast.success('Vetement pret !', { id: 'upload' });
-            setShowProgress(false);
-            setIsAnalyzing(false);
-            router.push(`/rapport/${saveResult.id}`);
-          } else {
-            toast.error('Erreur', { id: 'upload', description: saveResult.error });
-            setIsAnalyzing(false);
-          }
-        } catch (error) {
-          toast.error('Erreur reseau', { id: 'upload' });
-          setIsAnalyzing(false);
-        }
-      };
+      // Upload to analysis (convert base64 back to File for FormData)
+      const byteCharacters = atob(imageBase64);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: file.type });
+      const compressedFile = new File([blob], file.name, { type: file.type });
 
-      reader.readAsDataURL(file);
+      const analysisFormData = new FormData();
+      analysisFormData.append('file', compressedFile);
+      analysisFormData.append('analysisId', pendingAnalysis.id);
+
+      const analysisResponse = await fetch('/api/analysis/' + pendingAnalysis.id, {
+        method: 'POST',
+        body: analysisFormData,
+      });
+
+      if (!analysisResponse.ok) {
+        throw new Error('Analysis failed');
+      }
+
+      router.push('/rapport/' + pendingAnalysis.id);
     } catch (error) {
-      toast.error('Erreur', { description: error instanceof Error ? error.message : 'Erreur inattendue' });
+      console.error('Upload error:', error);
+      toast.error('Erreur lors de l\'analyse. Veuillez réessayer.');
       setIsAnalyzing(false);
+      setShowProgress(false);
+    }
+  };
+
+  const scrollToUpload = () => {
+    const element = document.getElementById('upload');
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
     }
   };
 
   return (
-    <div className="relative min-h-screen bg-black overflow-hidden">
+    <div className="relative min-h-screen bg-[#010103] overflow-hidden">
       {/* Loading overlay */}
       {showProgress && <AnalysisProgress />}
 
@@ -131,7 +114,9 @@ export default function Home() {
               className="flex items-center gap-3"
             >
               <div className="w-12 h-12 rounded-xl bg-gradient-to-br from-orange-500 via-purple-600 to-blue-600 flex items-center justify-center shadow-lg shadow-purple-500/30">
-                <Sparkles className="w-7 h-7 text-white" strokeWidth={2.5} />
+                <svg className="w-7 h-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z" />
+                </svg>
               </div>
               <span className="text-white font-bold text-2xl tracking-wider">Imaginie</span>
             </motion.div>
@@ -159,33 +144,31 @@ export default function Home() {
             </button>
           </div>
 
-          <AnimatePresence>
-            {showMobileMenu && (
-              <motion.div
-                initial={{ opacity: 0, height: 0 }}
-                animate={{ opacity: 1, height: 'auto' }}
-                exit={{ opacity: 0, height: 0 }}
-                className="md:hidden mt-4 p-4 bg-black/90 backdrop-blur-xl rounded-2xl border border-white/10"
-              >
-                <a href="#how-it-works" className="block py-2 text-white/70 hover:text-white transition-colors">
-                  How it works
-                </a>
-                <a href="#features" className="block py-2 text-white/70 hover:text-white transition-colors">
-                  Features
-                </a>
-                <a href="#pricing" className="block py-2 text-white/70 hover:text-white transition-colors">
-                  Pricing
-                </a>
-                <button className="block py-2 text-white/70 hover:text-white transition-colors">
-                  Log in
-                </button>
-              </motion.div>
-            )}
-          </AnimatePresence>
+          {showMobileMenu && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              className="md:hidden mt-4 p-4 bg-black/90 backdrop-blur-xl rounded-2xl border border-white/10"
+            >
+              <a href="#how-it-works" className="block py-2 text-white/70 hover:text-white transition-colors">
+                How it works
+              </a>
+              <a href="#features" className="block py-2 text-white/70 hover:text-white transition-colors">
+                Features
+              </a>
+              <a href="#pricing" className="block py-2 text-white/70 hover:text-white transition-colors">
+                Pricing
+              </a>
+              <button className="block py-2 text-white/70 hover:text-white transition-colors">
+                Log in
+              </button>
+            </motion.div>
+          )}
         </div>
       </nav>
 
-      {/* HERO SECTION - Imaginie Style */}
+      {/* HERO SECTION - Two Column Layout */}
       <section className="relative min-h-screen flex items-center px-6 pt-20">
         <div className="max-w-7xl mx-auto w-full grid lg:grid-cols-2 gap-16 items-center">
           {/* Left: Text Content */}
@@ -196,22 +179,22 @@ export default function Home() {
               transition={{ duration: 1 }}
               className="space-y-8"
             >
-              {/* Main Headline */}
+              {/* Main Headline - Playfair Display */}
               <motion.h1
                 initial={{ opacity: 0, y: 30 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: 0.2, duration: 0.8 }}
-                className="text-6xl md:text-7xl lg:text-8xl font-serif font-bold text-white leading-[0.9] tracking-tight"
-                style={{ fontFamily: 'serif' }}
+                className="text-6xl md:text-7xl lg:text-8xl font-serif font-bold text-white/90 leading-[0.9] tracking-tight"
+                style={{ fontFamily: 'var(--font-playfair), serif' }}
               >
                 Stay close to your
                 <br />
-                <span className="bg-gradient-to-r from-orange-400 via-purple-500 to-blue-500 bg-clip-text text-transparent">
+                <span className="bg-gradient-to-r from-orange-400 via-pink-500 to-purple-600 bg-clip-text text-transparent">
                   imagination.
                 </span>
               </motion.h1>
 
-              {/* Subtitle */}
+              {/* Subtitle - Inter */}
               <motion.p
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -232,21 +215,21 @@ export default function Home() {
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  onClick={() => {
-                    const element = document.getElementById('upload');
-                    if (element) element.scrollIntoView({ behavior: 'smooth' });
-                  }}
-                  className="px-8 py-4 bg-white/10 backdrop-blur-sm text-white border border-white/20 rounded-full font-medium text-lg hover:bg-white/20 transition-all duration-300"
+                  onClick={scrollToUpload}
+                  className="px-8 py-4 bg-white/5 backdrop-blur-md text-white border border-white/10 rounded-full font-medium text-lg hover:bg-white/10 transition-all duration-300"
                 >
                   See how it works
                 </motion.button>
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  className="px-8 py-4 bg-gradient-to-r from-orange-500 via-purple-600 to-blue-600 text-white rounded-full font-semibold text-lg shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 transition-all duration-300 relative overflow-hidden"
+                  className="px-8 py-4 bg-gradient-to-r from-orange-500 via-pink-500 to-purple-600 text-white rounded-full font-semibold text-lg shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 transition-all duration-300 relative overflow-hidden group"
                 >
-                  <span className="relative z-10">Begin the journey →</span>
-                  <div className="absolute inset-0 bg-gradient-to-r from-orange-600 via-purple-700 to-blue-700 opacity-0 hover:opacity-100 transition-opacity duration-300" />
+                  <span className="relative z-10 flex items-center gap-2">
+                    Begin the journey
+                    <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                  </span>
+                  <div className="absolute inset-0 bg-gradient-to-r from-orange-600 via-pink-600 to-purple-700 opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                 </motion.button>
               </motion.div>
 
@@ -274,54 +257,20 @@ export default function Home() {
             </motion.div>
           </div>
 
-          {/* Right: Galaxy Animation */}
+          {/* Right: Portal 3D Scene */}
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: 0.3, duration: 1 }}
-            className="relative"
+            className="relative w-full h-[600px] lg:h-[700px]"
           >
-            <div className="relative w-full max-w-2xl mx-auto aspect-square">
-              {/* Glowing border frame */}
-              <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-orange-500/20 via-purple-600/20 to-blue-600/20 blur-2xl scale-105" />
-              <div className="absolute inset-0 rounded-3xl bg-gradient-to-br from-orange-500/10 via-purple-600/10 to-blue-600/10 blur-xl scale-110" />
-
-              {/* Main frame container */}
-              <div className="relative w-full h-full rounded-3xl border border-white/10 bg-black/20 backdrop-blur-sm overflow-hidden">
-                {/* Inner glow */}
-                <div className="absolute inset-2 rounded-2xl bg-gradient-to-br from-orange-500/5 via-purple-600/5 to-blue-600/5" />
-
-                {/* Three.js Canvas */}
-                <div className="absolute inset-4 rounded-xl overflow-hidden">
-                  <Canvas
-                    camera={{ position: [0, 0, 30], fov: 60 }}
-                    style={{ background: 'transparent' }}
-                  >
-                    <GalaxyScene />
-                    <OrbitControls
-                      enableZoom={false}
-                      enablePan={false}
-                      autoRotate
-                      autoRotateSpeed={0.5}
-                      maxPolarAngle={Math.PI / 2}
-                      minPolarAngle={Math.PI / 2}
-                    />
-                  </Canvas>
-                </div>
-
-                {/* Corner decorations */}
-                <div className="absolute top-4 left-4 w-3 h-3 rounded-full bg-gradient-to-br from-orange-400 to-purple-600 opacity-80" />
-                <div className="absolute top-4 right-4 w-3 h-3 rounded-full bg-gradient-to-br from-purple-600 to-blue-600 opacity-80" />
-                <div className="absolute bottom-4 left-4 w-3 h-3 rounded-full bg-gradient-to-br from-blue-600 to-orange-400 opacity-80" />
-                <div className="absolute bottom-4 right-4 w-3 h-3 rounded-full bg-gradient-to-br from-orange-400 to-blue-600 opacity-80" />
-              </div>
-            </div>
+            <CinematicPortalScene />
           </motion.div>
         </div>
       </section>
 
-      {/* UPLOAD SECTION - Simplified for Imaginie */}
-      <section id="upload" className="relative py-24 px-6 bg-black">
+      {/* UPLOAD SECTION */}
+      <section id="upload" className="relative py-24 px-6 bg-[#010103]">
         <div className="max-w-4xl mx-auto text-center">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -329,7 +278,7 @@ export default function Home() {
             viewport={{ once: true }}
             className="mb-12"
           >
-            <h2 className="text-4xl md:text-6xl font-bold text-white mb-6">
+            <h2 className="text-4xl md:text-6xl font-bold text-white mb-6" style={{ fontFamily: 'var(--font-playfair), serif' }}>
               Ready to transform your <span className="bg-gradient-to-r from-orange-400 to-purple-600 bg-clip-text text-transparent">ideas</span>?
             </h2>
             <p className="text-white/70 text-xl max-w-2xl mx-auto">

@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Playfair_Display } from "next/font/google";
 import { Suspense } from "react";
 import Script from "next/script";
 import { Toaster } from "sonner";
@@ -8,6 +8,7 @@ import { FaviconHead } from "@/components/FaviconHead";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
+const playfair = Playfair_Display({ subsets: ["latin"], variable: "--font-playfair" });
 
 export const metadata: Metadata = {
   title: "VINTED-TURBO | Analyse de vêtements par IA : Vendez plus cher !",
@@ -31,7 +32,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="fr">
-      <body className={inter.className}>
+      <body className={`${inter.className} ${playfair.variable}`}>
         <FaviconHead />
         {/* Google tag (gtag.js) */}
         <Script
