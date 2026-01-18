@@ -85,6 +85,7 @@ varying vec3 vWorldPosition;
 varying vec3 vNormal;
 varying vec3 vViewPosition;
 varying float vNoise;
+varying vec3 vPosition;
 
 uniform float uTime;
 uniform float uFlowSpeed;
@@ -93,31 +94,37 @@ uniform float uDisplacementStrength;
 ${simplexNoise3D}
 
 void main() {
+  vPosition = position;
   vNormal = normalize(normalMatrix * normal);
   
-  // Create flowing displacement based on noise
+  // Create ORGANIC, FLOWING displacement - like molten lava
   vec3 pos = position;
-  vec3 worldPos = (modelMatrix * vec4(pos, 1.0)).xyz;
   
-  // Multi-octave noise for organic flow - MORE AGGRESSIVE
-  float noise = snoise(pos * 0.3 + vec3(uTime * uFlowSpeed * 0.5, uTime * uFlowSpeed * 0.7, uTime * uFlowSpeed * 0.3));
-  noise += snoise(pos * 0.6 + vec3(uTime * uFlowSpeed * 0.4, uTime * uFlowSpeed * 0.5, uTime * uFlowSpeed * 0.2)) * 0.7;
-  noise += snoise(pos * 1.2 + vec3(uTime * uFlowSpeed * 0.3, 0.0, uTime * uFlowSpeed * 0.4)) * 0.4;
-  noise += snoise(pos * 2.4 + vec3(0.0, uTime * uFlowSpeed * 0.2, uTime * uFlowSpeed * 0.3)) * 0.2;
+  // Multi-octave noise for deep, slow, organic flow
+  // Different scales create depth and complexity
+  float noise1 = snoise(pos * 0.25 + vec3(uTime * uFlowSpeed * 0.3, uTime * uFlowSpeed * 0.4, uTime * uFlowSpeed * 0.2));
+  float noise2 = snoise(pos * 0.5 + vec3(uTime * uFlowSpeed * 0.5, uTime * uFlowSpeed * 0.6, uTime * uFlowSpeed * 0.3)) * 0.6;
+  float noise3 = snoise(pos * 1.0 + vec3(uTime * uFlowSpeed * 0.4, 0.0, uTime * uFlowSpeed * 0.5)) * 0.3;
+  float noise4 = snoise(pos * 2.0 + vec3(0.0, uTime * uFlowSpeed * 0.2, uTime * uFlowSpeed * 0.4)) * 0.15;
   
-  // Add turbulence for bubbling effect
-  float turbulence = snoise(pos * 0.4 + vec3(uTime * uFlowSpeed * 0.6, uTime * uFlowSpeed * 0.8, uTime * uFlowSpeed * 0.5));
-  noise = noise * 0.7 + turbulence * 0.3;
+  // Combine for organic, flowing pattern
+  float noise = (noise1 + noise2 + noise3 + noise4) / 2.05;
+  
+  // Add slower, larger-scale turbulence for bulging effect
+  float turbulence = snoise(pos * 0.15 + vec3(uTime * uFlowSpeed * 0.2, uTime * uFlowSpeed * 0.25, uTime * uFlowSpeed * 0.15));
+  noise = noise * 0.75 + turbulence * 0.25;
   
   vNoise = noise;
   
-  // DRAMATIC displacement - make it bubble and bulge
+  // ORGANIC displacement - bulges and curves, no straight lines
   float displacement = noise * uDisplacementStrength;
-  // Add extra bulge on edges
-  displacement += abs(noise) * uDisplacementStrength * 0.5;
   
-  // Displace along normals AND add some random direction
-  vec3 displacementDir = normalize(normal + vec3(noise * 0.3, noise * 0.2, noise * 0.4));
+  // Extra bulge on surface for thickness perception
+  float bulge = abs(noise) * uDisplacementStrength * 0.6;
+  displacement += bulge;
+  
+  // Displace along normals with some organic variation
+  vec3 displacementDir = normalize(normal + vec3(noise * 0.2, noise * 0.15, noise * 0.25));
   pos += displacementDir * displacement;
   
   vec4 worldPosition = modelMatrix * vec4(pos, 1.0);
@@ -131,8 +138,10 @@ void main() {
 `;
 
 export const MoltenMetalFragmentShader = `
-uniform vec3 uColorStart;
-uniform vec3 uColorEnd;
+uniform vec3 uColorBase;
+uniform vec3 uColorCopper;
+uniform vec3 uColorGold;
+uniform vec3 uColorHot;
 uniform float uTime;
 uniform float uFlowSpeed;
 uniform float uFresnelPower;
@@ -141,6 +150,7 @@ varying vec3 vWorldPosition;
 varying vec3 vNormal;
 varying vec3 vViewPosition;
 varying float vNoise;
+varying vec3 vPosition;
 
 ${simplexNoise3D}
 
@@ -148,54 +158,64 @@ void main() {
   vec3 normal = normalize(vNormal);
   vec3 viewDir = normalize(vViewPosition);
   
-  // Enhanced Fresnel effect - VIOLENT rim light
-  float fresnel = pow(1.0 - dot(viewDir, normal), uFresnelPower);
+  // INTENSE Fresnel effect - edges are white hot
+  float fresnel = pow(1.0 - max(dot(viewDir, normal), 0.0), uFresnelPower);
   fresnel = smoothstep(0.0, 1.0, fresnel);
-  // Boost fresnel for intense edges
-  fresnel = pow(fresnel, 0.7);
   
-  // Additional noise for color variation (slower, more organic)
+  // Additional noise for surface variation (slower)
   vec3 flowNoise = vec3(
-    snoise(vWorldPosition * 0.2 + vec3(uTime * uFlowSpeed * 0.3, 0.0, 0.0)),
-    snoise(vWorldPosition * 0.2 + vec3(0.0, uTime * uFlowSpeed * 0.4, 0.0)),
-    snoise(vWorldPosition * 0.2 + vec3(0.0, 0.0, uTime * uFlowSpeed * 0.35))
+    snoise(vWorldPosition * 0.18 + vec3(uTime * uFlowSpeed * 0.25, 0.0, 0.0)),
+    snoise(vWorldPosition * 0.18 + vec3(0.0, uTime * uFlowSpeed * 0.3, 0.0)),
+    snoise(vWorldPosition * 0.18 + vec3(0.0, 0.0, uTime * uFlowSpeed * 0.28))
   );
   
-  // BASE: Dark Bronze / Dark Brown (center is very dark)
-  vec3 darkBase = vec3(0.15, 0.12, 0.08); // Dark bronze
+  // COLOR PALETTE: Dark Bronze -> Copper -> Gold -> White Hot
+  // Base: Very dark chocolate brown (almost black)
+  vec3 darkBase = vec3(0.08, 0.06, 0.04); // Dark chocolate
   
-  // MID-TONE: Copper / Orange Gold
-  vec3 copperMid = vec3(0.8, 0.5, 0.2); // Copper/Orange gold
+  // Mid-tone: Dark bronze
+  vec3 darkBronze = vec3(0.18, 0.12, 0.08);
   
-  // Mix based on noise - center stays dark, edges get copper
+  // Copper: Burnt orange
+  vec3 copper = vec3(0.7, 0.35, 0.15); // Burnt orange
+  
+  // Gold: Warm yellow
+  vec3 gold = vec3(0.95, 0.75, 0.35); // Warm gold
+  
+  // Hot: Blinding white/yellow
+  vec3 hot = vec3(1.0, 0.95, 0.85); // White hot
+  
+  // Mix based on noise and fresnel
   float noiseMix = (vNoise + 1.0) * 0.5;
-  noiseMix = pow(noiseMix, 1.5); // Keep it darker in center
+  noiseMix = pow(noiseMix, 1.3); // Keep darker in recesses
   
-  vec3 baseColor = mix(darkBase, copperMid, noiseMix * 0.6);
-  baseColor += flowNoise * 0.15; // Subtle variation
+  // Start from very dark base
+  vec3 baseColor = mix(darkBase, darkBronze, noiseMix * 0.4);
+  baseColor = mix(baseColor, copper, noiseMix * 0.3);
   
-  // Intensity: Very dark center, bright edges
-  float intensity = mix(0.2, 1.0, fresnel); // Center is VERY dark (0.2)
+  // Add subtle flow variation
+  baseColor += flowNoise * 0.08;
   
-  // HIGHLIGHT: White/Yellow intense at edges (Fresnel)
-  vec3 highlightColor = mix(
-    baseColor,
-    vec3(1.0, 0.9, 0.6), // Warm white/yellow
-    fresnel * 0.9
-  );
+  // FRESNEL GRADIENT: Dark center -> Gold edges -> White hot extreme edges
+  float fresnelMix = fresnel;
   
-  // EXTREME EDGES: Pure white hot
-  highlightColor = mix(
-    highlightColor,
-    vec3(1.0, 1.0, 0.95), // White hot
-    pow(fresnel, 2.5) * 0.7
-  );
+  // At edges: transition to gold
+  vec3 edgeColor = mix(baseColor, gold, fresnelMix * 0.8);
   
-  // Final color with intensity
-  vec3 finalColor = highlightColor * intensity;
+  // At extreme edges: white hot
+  float extremeFresnel = pow(fresnel, 2.5);
+  edgeColor = mix(edgeColor, hot, extremeFresnel * 0.9);
   
-  // Add slight emissive glow on edges
-  finalColor += vec3(1.0, 0.8, 0.4) * pow(fresnel, 3.0) * 0.3;
+  // Final color - very dark center, bright edges
+  float intensity = mix(0.15, 1.0, fresnel); // Center is VERY dark
+  vec3 finalColor = edgeColor * intensity;
+  
+  // EMISSIVE GLOW on edges (for that molten metal look)
+  vec3 emissive = vec3(1.0, 0.85, 0.5) * pow(fresnel, 3.0) * 0.4; // Warm glow
+  finalColor += emissive;
+  
+  // Ensure minimum darkness in center (never pure black)
+  finalColor = max(finalColor, vec3(0.05, 0.04, 0.03));
   
   gl_FragColor = vec4(finalColor, 1.0);
 }
@@ -203,9 +223,11 @@ void main() {
 
 export const MoltenMetalUniforms = {
   uTime: { value: 0 },
-  uColorStart: { value: new THREE.Color(0x261a0d) }, // Dark bronze (not used directly, but kept for compatibility)
-  uColorEnd: { value: new THREE.Color(0xcc8033) },   // Copper/Orange gold
-  uFlowSpeed: { value: 0.25 }, // Slower, more organic
-  uDisplacementStrength: { value: 0.4 }, // DRAMATICALLY INCREASED for bubbling effect
-  uFresnelPower: { value: 1.8 }, // Slightly lower for smoother transition
+  uColorBase: { value: new THREE.Color(0x140a05) }, // Very dark chocolate
+  uColorCopper: { value: new THREE.Color(0xb35926) }, // Burnt orange/copper
+  uColorGold: { value: new THREE.Color(0xf2bf5e) }, // Warm gold
+  uColorHot: { value: new THREE.Color(0xfff4d9) }, // White hot
+  uFlowSpeed: { value: 0.2 }, // Slow, organic flow
+  uDisplacementStrength: { value: 0.5 }, // Strong organic deformation
+  uFresnelPower: { value: 1.5 }, // Smooth but intense fresnel
 };

@@ -41,6 +41,25 @@ body {
   .text-balance {
     text-wrap: balance;
   }
+
+  /* Background Grid Pattern */
+  .bg-grid-pattern {
+    background-image: 
+      radial-gradient(circle, rgba(0, 0, 0, 0.1) 1px, transparent 1px);
+    background-size: 24px 24px;
+    background-position: 0 0;
+  }
+
+  /* Gradient Radial */
+  .bg-gradient-radial {
+    background: radial-gradient(circle, var(--tw-gradient-stops));
+  }
+
+  /* Vignette Effect */
+  .bg-vignette {
+    mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 60%, transparent 100%);
+    -webkit-mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 60%, transparent 100%);
+  }
 }
 
 

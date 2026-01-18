@@ -1,16 +1,32 @@
 "use client";
 
-import { Suspense } from 'react';
-import { Canvas } from '@react-three/fiber';
+import { Suspense, useEffect } from 'react';
+import { Canvas, useThree } from '@react-three/fiber';
 import { EffectComposer, Bloom } from '@react-three/postprocessing';
 import { OrbitControls, MeshReflectorMaterial, Environment } from '@react-three/drei';
 import { PortalFrame } from './PortalFrame';
 import { PortalInterior } from './PortalInterior';
 import * as THREE from 'three';
 
+function SceneBackground() {
+  const { scene } = useThree();
+  useEffect(() => {
+    scene.background = new THREE.Color('#000000');
+  }, [scene]);
+  return null;
+}
+
 function PortalScene() {
   return (
     <>
+      <SceneBackground />
+      
+      {/* Environment HDRI - CRITIQUE pour les reflets d'or */}
+      <Environment preset="warehouse" background={false} blur={0.5} />
+
+      {/* Fog - très sombre pour fondre le sol et l'horizon */}
+      <fog attach="fog" args={['#050011', 5, 20]} />
+
       {/* Ambient light (very minimal) */}
       <ambientLight intensity={0.1} />
 
@@ -60,7 +76,7 @@ export function CinematicPortalScene() {
         dpr={[1, 2]}
         camera={{ position: [0, 0, 6], fov: 45 }}
         gl={{ antialias: true, alpha: true }}
-        style={{ background: '#010103' }}
+        style={{ background: '#000000' }}
       >
         <Suspense fallback={null}>
           <PortalScene />
